@@ -73,14 +73,10 @@ class User
   def list
     names = []
     # Todo: This is definitely not the right way to nest SQL statements.
-    DB.exec("SELECT mapper_id FROM subscriptions WHERE user_disc = #{@disc}") do |result|
-      result.values.map {|v| v[0]}.each do |mapper_id|
-        names.push(
-          DB.exec("SELECT mapper_name FROM mappers WHERE mapper_id = #{mapper_id}").values[0][0]
-        )
-      end
-    end
-    return names
+    cmd = "SELECT mapper_name FROM mappers JOIN subscriptions ON "
+    cmd += "mappers.mapper_id = subscriptions.mapper_id WHERE "
+    cmd += "subscriptions.user_disc = #{@disc}"
+    return DB.exec(cmd).values.map {|n| n[0]}
   end
 
   # Unsubscribe from all mappers.

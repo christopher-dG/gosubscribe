@@ -10,10 +10,12 @@ class Mapper
       if !id.empty?
         @id = id
         url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{@id}&type=id"
+        response.key?('username') || raise
         @username = HTTParty.get(url).parsed_response[0]['username']
       elsif !username.empty?
         url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{username}&type=string"
         response = HTTParty.get(url).parsed_response[0]
+        (response.key?('user_id') && response.key?('username')) || raise
         @id = response['user_id']
         @username = response['username']
       else
@@ -21,6 +23,7 @@ class Mapper
       end
     rescue
       @error = true
+      return
     end
 
     # Check if the mapper already has maps in the database.
