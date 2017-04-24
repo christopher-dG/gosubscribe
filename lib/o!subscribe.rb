@@ -13,7 +13,10 @@ def empty?(s) s.empty? || s.each_char.all? {|c| c == ' '} end
 def setup
   bot = Discordrb::Commands::CommandBot.new(token: TOKEN, client_id: CLIENT_ID, prefix: '!', channels: [CHANNEL])
 
-  bot.command(:subscribe) do |event|
+  bot.command(
+    :subscribe,
+    description: 'Subscribe to a user: !subscribe "user1" "user2"'
+  ) do |event|
     if event.text.split.length == 1
       error = true
     else
@@ -40,7 +43,10 @@ def setup
     end
   end
 
-  bot.command(:unsubscribe) do |event|
+  bot.command(
+    :unsubscribe,
+    description: 'Unsubscribe from a user: !unsubscribe "user1" "user2"'
+  ) do |event|
     if event.text.split.length == 1
       error = true
     else
@@ -63,13 +69,13 @@ def setup
     end
   end
 
-  bot.command(:purge) do |event|
+  bot.command(:purge, description: 'Unsubscribe from all users') do |event|
     user = User.new(event.user)
     user.purge
     event.respond("#{event.user.mention} is no longer subscribed to any mappers.")
   end
 
-  bot.command(:list) do |event|
+  bot.command(:list, description: 'List your subscriptions') do |event|
     user = User.new(event.user)
     subscriptions = user.list
     if subscriptions.empty?
