@@ -8,14 +8,8 @@
 
 ## Usage
 
-* Using o!subscribe requires a Discord account.
-* First, join the Discord channel with [this invite](https://discord.gg/qaUhTKJ).
-* To subscribe to users, enter the following in the `#subscriptions` channel:
-  ```!subscribe "username" "username2" ...```
-* `subscription-bot` will confirm your subscriptions. From then on, you will receive a message every time one of these users uploads a new beatmap.
-* To unsubscribe from users, enter the following in the `#subscriptions` channel:
-  ```!unsubscribe "username1" "username2 ...```
-* If you don't put the usernames in double quotes, your request will fail.
+Using o!subscribe requires that you are a member of the [o!subscribe Discord server](https://discord.gg/qaUhTKJ).
+From there, enter `!help` in `#subscriptions` for command instructions.
 
 ***
 
