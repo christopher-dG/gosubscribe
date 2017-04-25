@@ -7,6 +7,7 @@ require_relative 'consts'
 require_relative 'user'
 require_relative 'mapper'
 
+
 # Return true if a string is empty or comprised of all spaces.
 def empty?(s) s.empty? || s.each_char.all? {|c| c == ' '} end
 
@@ -187,10 +188,4 @@ if __FILE__ == $0
   puts("Channel: #{CHANNEL}")
   BOT = setup
   BOT.run
-
-  # loop do
-  #   # Todo: Check each mapper for new maps.
-  #   sleep 3600  # Todo: Need to evaluate how much CPU power this work takes.
-  # end
-
 end

@@ -7,12 +7,13 @@ class Mapper
   # Supply at at least one of username or id.
   def initialize(username: '', id: '')
     begin
-      if !id.empty? && !username.empty?
-        @id = id
+      if !id.to_s.empty? && !username.empty?
+        @id = id.to_s
         @username = username
-      elsif !id.empty?
-        @id = id
+      elsif !id.to_s.empty?
+        @id = id.to_s
         url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{@id}&type=id"
+        response = HTTParty.get(url).parsed_response[0]
         response.key?('username') || raise
         @username = HTTParty.get(url).parsed_response[0]['username']
       elsif !username.empty?
