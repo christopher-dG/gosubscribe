@@ -178,12 +178,6 @@ def setup
     msg
   end
 
-  bot.command(
-    :echo
-  ) do |event|
-    event.text
-  end
-
   return bot
 end
 
