@@ -13,4 +13,6 @@ From there, enter `!help` in `#subscriptions` for command instructions.
 
 ***
 
+**o!subscribe is partially powered by [osu!search](https://osusearch.com).**
+
 **Disclaimer: o!subscribe is in no way affiliated with [osu!](https://osu.ppy.sh).**

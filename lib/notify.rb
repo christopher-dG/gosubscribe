@@ -16,13 +16,13 @@ if __FILE__ == $0
   BOT = setup
   JSON.load(HTTParty.get(SEARCH_URL).parsed_response)['beatmaps'].each do |map|
     mapper_name = map['mapper']
-    if mapper_name == 'Akali'
-      puts mapper_name
       result = DB.exec("SELECT * FROM mappers WHERE mapper_name = '#{mapper_name}'")
-      puts result.to_a
       if result.ntuples > 0
         mapper = Mapper.new(username: mapper_name)
+        if DB.exec("SELECT * FROM maps WHERE mapper_id = #{mapper.id} AND mapset_id = #{map['beatmapset']}").ntuples == 0
+
         notify(map, mapper)
+        puts("Inserting (#{mapper.id}, #{map['beatmapset']}).")
         DB.exec("INSERT INTO maps(mapper_id, mapset_id) VALUES (#{mapper.id}, #{map['beatmapset']})")
       end
     end
