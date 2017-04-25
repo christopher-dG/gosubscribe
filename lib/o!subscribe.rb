@@ -84,7 +84,7 @@ def setup
     [:subscribe, :sub],
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Subscribe to mappers. `!subscribe user1, user2`',
+    description: 'Subscribe to mappers. `!sub[scribe] user1, user2`',
   ) do |event|
     edit_subscription(event, :sub)
   end
@@ -93,7 +93,7 @@ def setup
     [:unsubscribe, :unsub],
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Unsubscribe from mappers. `!unsubscribe user1, user2`',
+    description: 'Unsubscribe from mappers. `!unsub[scribe] user1, user2`',
   ) do |event|
     edit_subscription(event, :unsub)
   end
