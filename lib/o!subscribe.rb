@@ -132,7 +132,7 @@ def setup
         msg = "#{event.user.mention} is subscribed to: #{subscriptions.join(', ')}."
         if msg.length > CHAR_LIMIT
           # Todo: Actually deal with this.
-          msg = "Too many mappers to display, showing as many as possible.\n#{msg[0..1995]} ..."
+          msg = "Too many mappers to display, showing as many as possible.\n#{msg}"[0..1995] + ' ...'
         end
       end
     end
