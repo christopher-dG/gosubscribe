@@ -50,7 +50,7 @@ class User
 
   # Subscribe the user to some given mappers.
   # mappers: List of mappers to subscribe to.
-  def subscribe!(mappers)
+  def subscribe(mappers)
     mappers.each do |mapper|
       begin
         DB.exec("INSERT INTO subscriptions(user_disc, mapper_id) VALUES (#{@disc}, #{mapper.id})")
@@ -62,7 +62,7 @@ class User
 
   # Unsubscribe the user from some given mappers.
   # mapper: List of mappers to unsubscribe from.
-  def unsubscribe!(mappers)
+  def unsubscribe(mappers)
     mapper_ids = mappers.map {|mapper| mapper.id}
     cmd = "DELETE FROM subscriptions WHERE user_disc = #{@disc} AND mapper_id in "
     cmd += "(#{mapper_ids.join(', ')})"
@@ -72,11 +72,10 @@ class User
   # Return the usernames of all mappers the user is subscribed to.
   def list
     names = []
-    # Todo: This is definitely not the right way to nest SQL statements.
     cmd = "SELECT mapper_name FROM mappers JOIN subscriptions ON "
     cmd += "mappers.mapper_id = subscriptions.mapper_id WHERE "
     cmd += "subscriptions.user_disc = #{@disc}"
-    return DB.exec(cmd).values.map {|n| n[0]}
+    return DB.exec(cmd).values.map {|m| m[0]}.sort_by(&:downcase)
   end
 
   # Unsubscribe from all mappers.

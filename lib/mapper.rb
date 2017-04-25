@@ -7,7 +7,10 @@ class Mapper
   # Supply at at least one of username or id.
   def initialize(username: '', id: '')
     begin
-      if !id.empty?
+      if !id.empty? && !username.empty?
+        @id = id
+        @username = username
+      elsif !id.empty?
         @id = id
         url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{@id}&type=id"
         response.key?('username') || raise
@@ -26,22 +29,41 @@ class Mapper
       return
     end
 
-    # Check if the mapper already has maps in the database.
-    if DB.exec("SELECT * FROM mappers WHERE mapper_id = #{@id}").ntuples == 0
+    begin
+      update_db
+    rescue
+      @error = true
+    end
+
+    @error = false
+  end
+
+  # Insert a mapper into the database.
+  def update_db
+    result = DB.exec("SELECT * FROM mappers WHERE mapper_id = #{@id}")
+    if result.ntuples == 0
+      # Add the mapper to the database.
       DB.exec_prepared('insert_mapper', [@id, @username])
-      mapset_ids = self.request_beatmaps
+      mapset_ids = request_beatmaps
       if !mapset_ids.empty?
         # Add the mapper's maps to the database.
         cmd = 'INSERT INTO maps(mapper_id, mapset_id) VALUES '
         cmd += mapset_ids.map {|m| "(#{@id}, #{m})"}.join(', ')
         DB.exec(cmd)
       end
+    # Todo: Concurrent inserts of the same mapper may be causing duplicate key errors.
+    else
+      mapper = result.to_a[0]
+      if mapper['mapper_name'] != @username
+        # Name change: rename the old mapper to the new.
+        DB.exec(
+          "UPDATE mappers SET mapper_name = '#{@username}' WHERE mapper_id = #{@id}"
+        )
+      end
     end
-
-    @error = false
   end
 
-  # Get a list of all the Mapper's beatmaps.
+  # Get a list of all the mapper's beatmaps.
   def request_beatmaps
     url = "#{OSU_URL}/get_beatmaps?k=#{OSU_KEY}&u=#{@id}&type=id"
     return Set.new(HTTParty.get(url).parsed_response.map {|b| b['beatmapset_id']})
@@ -53,13 +75,12 @@ class Mapper
     existing_mapsets.map! {|m| m.values[0]}
     new_mapsets = []
 
-    # Todo: use the `since` API parameter to speed this up.
-    mapset_ids = self.request_beatmaps
+    mapset_ids = request_beatmaps
 
     mapset_ids.each do |mapset_id|
       if !existing_mapsets.include?(mapset_id)
         new_mapsets.push(mapset_id)
-        DB.exec("INSERT INTO maps(mapper_id, mapset_id) VALUES (#{self.to_s}, #{mapset_id})")
+        DB.exec("INSERT INTO maps(mapper_id, mapset_id) VALUES (#{@id}, #{mapset_id})")
       end
     end
 
