@@ -16,7 +16,7 @@ def escape(s) s.gsub('_', '\_') end
 
 # Respond with an error message.
 def failure(event, msg: 'something went wrong.')
-  "Sorry #{event.user.mention}, #{msg}."
+  "Sorry #{event.user.mention}, #{msg}"
 end
 
 # Subscribe or unsubscribe a user to/from a mapper.

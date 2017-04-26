@@ -7,8 +7,13 @@ def notify(map, mapper)
   cmd += "ON u.user_disc = s.user_disc WHERE s.mapper_id = #{mapper.id}"
   DB.exec(cmd).each do |data|
     user = User.new(data).to_discord_user
-    user.pm("[experimental] New map by #{mapper.username}: https://osu.ppy.sh/b/#{map['beatmap_id']}")
-    puts("Sent message to #{user.username} for #{mapper.username}'s map.")
+    begin
+      user.pm("[experimental] New map by #{mapper.username}: https://osu.ppy.sh/b/#{map['beatmap_id']}")
+    rescue
+      puts("Sending to #{user.username} for #{mapper.username}'s map failed.")
+    else
+      puts("Sent message to #{user.username} for #{mapper.username}'s map.")
+    end
   end
 end
 
