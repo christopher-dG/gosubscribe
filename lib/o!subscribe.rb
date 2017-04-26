@@ -20,15 +20,16 @@ def failure(event, msg: 'something went wrong.')
 end
 
 # Create a fenced-code table of mappers and their sub counts.
-# Mappers: List of {'mapper_name' => x, 'sub_count' => y} hashes.
+# Mappers: List of {'mapper' => x, 'sub_count' => y} hashes.
 def format_counts(mappers)
-  msg = '```'
-  width = mappers.max_by {|m| m['mapper_name'].length} + 3
+  msg = ''
+  width = mappers.map {|m| m['mapper'].length}.max + 3
   mappers.each do |mapper|
-    name = mapper['mapper_name']
-    msg += name + ' ' * (name.length - width) + mapper['subs']
+    name = mapper['mapper']
+    s = mapper['subs'].to_i != 1 ? 's' : ''
+    msg += "#{name} #{' ' * (width - name.length)}#{mapper['subs']} subsriber#{s}\n"
   end
-  return msg + '```'
+  return msg
 end
 
 # Subscribe or unsubscribe a user to/from a mapper.
@@ -225,15 +226,7 @@ def setup
     num = num.nil? ? DEFAULT_TOP : [num, TOP_MAX].min
     cmd = 'SELECT m.mapper_name mapper, COUNT(*) subs FROM subscriptions s JOIN '
     cmd += 'mappers m ON s.mapper_id = m.mapper_id GROUP BY mapper ORDER BY subs DESC'
-    result = DB.exec(cmd).to_a[0...num]
-    msg = ''
-
-    result.each do |r|
-      s = r['subs'].to_i != 1 ? 's' : ''
-      msg += "#{r['mapper']}: #{r['subs']} subscriber#{s}\n"
-    end
-
-    msg
+    "```#{format_counts(DB.exec(cmd).to_a[0...num])}```"
   end
 
   return bot
