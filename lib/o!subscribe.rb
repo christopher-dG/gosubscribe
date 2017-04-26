@@ -19,6 +19,18 @@ def failure(event, msg: 'something went wrong.')
   "Sorry #{event.user.mention}, #{msg}"
 end
 
+# Create a fenced-code table of mappers and their sub counts.
+# Mappers: List of {'mapper_name' => x, 'sub_count' => y} hashes.
+def format_counts(mappers)
+  msg = '```'
+  width = mappers.max_by {|m| m['mapper_name'].length} + 3
+  mappers.each do |mapper|
+    name = mapper['mapper_name']
+    msg += name + ' ' * (name.length - width) + mapper['subs']
+  end
+  return msg + '```'
+end
+
 # Subscribe or unsubscribe a user to/from a mapper.
 # type: :sub for subscription, :unsub for unsubscription.
 def edit_subscription(event, type)
@@ -92,7 +104,8 @@ def setup
     :sub,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: SUB_MSG,
+    description: 'Subscribe to mappers.',
+    usage: '!sub username1, username2, :userid1, :userid2',
   ) do |event|
     edit_subscription(event, :sub)
   end
@@ -101,34 +114,18 @@ def setup
     :unsub,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: UNSUB_MSG,
+    description: 'Unsubscribe from mappers.',
+    usage: '!unsub username1, username2, :userid1, :userid2',
   ) do |event|
     edit_subscription(event, :unsub)
-  end
-
-  bot.command(
-    :purge,
-    bucket: :cmd,
-    rate_limit_message: 'Wait %time% seconds.',
-    description: PURGE_MSG,
-  ) do |event|
-    user = User.new(event.user)
-
-    if user.error
-      msg = failure(event)
-    else
-      user.purge
-      msg = "#{event.user.mention} is no longer subscribed to any mappers."
-    end
-
-    msg
   end
 
   bot.command(
     :list,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: LIST_MSG,
+    description: 'List your subscriptions.',
+    usage: '!list',
   ) do |event|
     user = User.new(event.user)
 
@@ -153,10 +150,30 @@ def setup
   end
 
   bot.command(
+    :purge,
+    bucket: :cmd,
+    rate_limit_message: 'Wait %time% seconds.',
+    description: 'Unsubscribe from all mappers.',
+    usage: '!purge',
+  ) do |event|
+    user = User.new(event.user)
+
+    if user.error
+      msg = failure(event)
+    else
+      user.purge
+      msg = "#{event.user.mention} is no longer subscribed to any mappers."
+    end
+
+    msg
+  end
+
+  bot.command(
     :count,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: COUNT_MSG,
+    description: 'Show mappers\' subscriber counts.',
+    usage: '!count username1, username2',
   ) do |event|
     string = event.text.split[1..-1].join(' ')
     tokens = Set.new(string.split(',').reject {|s| empty?(s)}).map {|t| t.strip}
@@ -191,6 +208,29 @@ def setup
 
     else
       msg = failure(event)
+    end
+
+    msg
+  end
+
+  bot.command(
+    :top,
+    bucket: :cmd,
+    rate_limit_message: 'Wait %time% seconds.',
+    description: 'Show the top n mappers and their subscriber counts.',
+    usage: '!top [n]',
+    max_args: 1,
+    arg_types: [Integer],
+  ) do |event, num|
+    num = num.nil? ? DEFAULT_TOP : [num, TOP_MAX].min
+    cmd = 'SELECT m.mapper_name mapper, COUNT(*) subs FROM subscriptions s JOIN '
+    cmd += 'mappers m ON s.mapper_id = m.mapper_id GROUP BY mapper ORDER BY subs DESC'
+    result = DB.exec(cmd).to_a[0...num]
+    msg = ''
+
+    result.each do |r|
+      s = r['subs'].to_i != 1 ? 's' : ''
+      msg += "#{r['mapper']}: #{r['subs']} subscriber#{s}\n"
     end
 
     msg
