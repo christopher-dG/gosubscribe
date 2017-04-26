@@ -5,7 +5,7 @@ require_relative 'o!subscribe'
 def notify(map, mapper)
   cmd = "SELECT u.user_disc, u.user_id, u.user_name FROM users u JOIN subscriptions s "
   cmd += "ON u.user_disc = s.user_disc WHERE s.mapper_id = #{mapper.id}"
-  subs = DB.exec(cmd).each do |data|
+  DB.exec(cmd).each do |data|
     user = User.new(data).to_discord_user
     user.pm("[experimental] New map by #{mapper.username}: https://osu.ppy.sh/b/#{map['beatmap_id']}")
     puts("Sent message to #{user.username} for #{mapper.username}'s map.")

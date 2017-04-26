@@ -15,57 +15,64 @@ def empty?(s) s.empty? || s.each_char.all? {|c| c == ' '} end
 def escape(s) s.gsub('_', '\_') end
 
 # Respond with an error message.
-def failure(event) "Sorry #{event.user.mention}, something went wrong." end
+def failure(event, msg: 'something went wrong.')
+  "Sorry #{event.user.mention}, #{msg}."
+end
 
 # Subscribe or unsubscribe a user to/from a mapper.
 # type: :sub for subscription, :unsub for unsubscription.
 def edit_subscription(event, type)
-  if event.text.split.length == 1
-    msg = failure(event)
-  else
-    user = User.new(event.user)
-    string = event.text.split[1..-1].join(' ')
-    tokens = Set.new(string.split(', ').reject {|s| empty?(s)}).map {|t| t.strip}
-    mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
-    usernames = mappers.map {|m| m.username}
-    if !user.error && !mappers.empty?
+  return failure(event, msg: 'no mappers were given.') if event.text.split.length == 1
 
-      if type == :sub
-        if mappers.length > SUB_LIMIT  # Too many subs at once.
-          msg = "#{event.user.mention}, you can only subscribe to #{SUB_LIMIT} mappers at once."
-        else
-          subs = DB.exec("SELECT COUNT(*) FROM subscriptions WHERE user_disc = #{user.disc}")
-          subs = subs.values[0][0].to_i
-          if subs + mappers.length > TOTAL_SUB_LIMIT  # Too many total subs.
-            rem = TOTAL_SUB_LIMIT - subs
-            s = rem > 1 ? 's' : ''
-            msg = "#{event.user.mention}, you can only subscribe "
-            msg += "to #{rem} more mapper#{s} (#{mappers.length} given)."
-          else
-            user.subscribe(mappers)
-            usernames.map! {|u| escape(u)}
-            msg = "#{event.user.mention} has subscribed to: #{usernames.join(', ')}."
-          end
-        end
+  user = User.new(event.user)
+  return failure(event) if user.error
 
-      elsif type == :unsub
-        cmd = "SELECT mapper_name from subscriptions JOIN mappers "
-        cmd += "ON subscriptions.mapper_id = mappers.mapper_id "
-        cmd += "WHERE user_disc = #{user.disc}"
-        subs = DB.exec(cmd).values.map {|v| v[0]}
-        mappers.reject! {|m| !subs.include?(m.username)}
-        usernames.reject! {|u| !subs.include?(u)}
-        usernames.map! {|u| escape(u)}
-        user.unsubscribe(mappers)
-        usernames.map! {|u| escape(u)}
-        msg = "#{event.user.mention} has unsubscribed from: #{usernames.join(', ')}."
-      end
+  string = event.text.split[1..-1].join(' ')
+  tokens = Set.new(string.split(', ').reject {|s| empty?(s)}).map {|t| t.strip}
+  return failure(
+           event, msg: "you can only supply up to #{CMD_LIMIT} mappers at once."
+         ) if tokens.length > CMD_LIMIT
 
+  mappers = tokens.map do |token|
+    if token.start_with?(':')
+      Mapper.new(id: token[1..-1])
     else
-      msg = failure(event)
+      Mapper.new(username: token)
     end
   end
-  msg
+
+  mappers.reject! {|m| m.error}
+  usernames = mappers.map {|m| m.username}
+
+  return failure(event) if mappers.empty?
+
+  if type == :sub
+    subs = DB.exec("SELECT COUNT(*) FROM subscriptions WHERE user_disc = #{user.disc}")
+    subs = subs.values[0][0].to_i
+
+    if subs + mappers.length > TOTAL_SUB_LIMIT  # Too many total subs.
+      rem = TOTAL_SUB_LIMIT - subs
+      s = rem > 1 ? 's' : ''
+      msg = failure(
+        event, msg: "you can only subscribe to #{rem} more mapper#{s} (#{mappers.length} given)."
+      )
+    else
+      user.subscribe(mappers)
+      usernames.map! {|u| escape(u)}
+      msg = "#{event.user.mention} has subscribed to: #{usernames.join(', ')}."
+    end
+
+  else  # :unsub
+    cmd = 'SELECT mapper_name from subscriptions JOIN mappers '
+    cmd += 'ON subscriptions.mapper_id = mappers.mapper_id '
+    cmd += "WHERE user_disc = #{user.disc}"
+    subs = DB.exec(cmd).values.map {|v| v[0]}
+    mappers.reject! {|m| !subs.include?(m.username)}
+    usernames = usernames.reject {|u| !subs.include?(u)}.map {|u| escape(u)}
+    user.unsubscribe(mappers)
+    msg = "#{event.user.mention} has unsubscribed from: #{usernames.join(', ')}."
+  end
+  return msg
 end
 
 
@@ -82,19 +89,19 @@ def setup
   bot.bucket(:cmd, delay: 1.5)  # Rate limiter.
 
   bot.command(
-    [:subscribe, :sub],
+    :sub,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Subscribe to mappers. `!sub[scribe] user1, user2`',
+    description: SUB_MSG,
   ) do |event|
     edit_subscription(event, :sub)
   end
 
   bot.command(
-    [:unsubscribe, :unsub],
+    :unsub,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Unsubscribe from mappers. `!unsub[scribe] user1, user2`',
+    description: UNSUB_MSG,
   ) do |event|
     edit_subscription(event, :unsub)
   end
@@ -103,15 +110,17 @@ def setup
     :purge,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Unsubscribe from all mappers.',
+    description: PURGE_MSG,
   ) do |event|
     user = User.new(event.user)
+
     if user.error
       msg = failure(event)
     else
       user.purge
       msg = "#{event.user.mention} is no longer subscribed to any mappers."
     end
+
     msg
   end
 
@@ -119,13 +128,15 @@ def setup
     :list,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'List your subscriptions.',
+    description: LIST_MSG,
   ) do |event|
     user = User.new(event.user)
+
     if user.error
       msg = failure(event)
     else
       subscriptions = user.list
+
       if subscriptions.empty?
         msg ="#{event.user.mention} is not subscribed any mappers."
       else
@@ -137,6 +148,7 @@ def setup
         end
       end
     end
+
     msg
   end
 
@@ -144,38 +156,43 @@ def setup
     :count,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: "Get users' subscriber counts. `!count user1, user2`.",
+    description: COUNT_MSG,
   ) do |event|
     string = event.text.split[1..-1].join(' ')
     tokens = Set.new(string.split(',').reject {|s| empty?(s)}).map {|t| t.strip}
+
+    if tokens.length > CMD_LIMIT
+      return msg = failure(event, msg: "you can only !count #{CMD_LIMIT} mappers at once.")
+    end
+
     mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
     usernames = mappers.map {|m| m.username}
 
-    # Todo: Deal with mappers not in the table.
-    if !mappers.reject {|m| m.error}.empty?
-      vals = usernames.map {|u| "'#{u}'"}.join(', ')
-      cmd = "SELECT mappers.mapper_name, count(*) subs FROM "
-      cmd += "mappers JOIN subscriptions ON "
-      cmd += "mappers.mapper_id = subscriptions.mapper_id AND "
-      cmd += "mapper_name IN (#{vals}) GROUP BY mappers.mapper_name"
+    if !mappers.empty?
+      msg = ''
+      sub_counts = {}
 
-      # For now, just about if anything goes wrong.
-      begin
-        results = DB.exec(cmd).to_a.sort_by {|x| x['mapper_name'].downcase}
-        results.to_a.empty? && raise
-      rescue
-        msg = failure(event)
-      else
-        # Todo: Nicer formatting.
-        msg = ''
-        results.each do |r|
-          s = r['subs'].to_i > 1 ? 's' : ''
-          msg += "#{r['mapper_name']}: #{r['subs']} subscriber#{s}\n"
+      mappers.each do |mapper|
+        cmd = 'SELECT m.mapper_name, COUNT(*) subs FROM mappers m JOIN '
+        cmd += 'subscriptions s ON m.mapper_id = s.mapper_id WHERE '
+        cmd += "m.mapper_id = #{mapper.id} GROUP BY m.mapper_name"
+        result = DB.exec(cmd).to_a
+
+        if !result.empty?
+          sub_counts[mapper.username] = result[0]['subs']
+        else
+          sub_counts[mapper.username] = 0
         end
       end
+      sub_counts.sort_by {|p| p[0].downcase }.each do |pair|
+        s = pair[1].to_i != 1 ? 's' : ''
+        msg += "#{pair[0]}: #{pair[1]} subscriber#{s}\n"
+      end
+
     else
       msg = failure(event)
     end
+
     msg
   end
 
