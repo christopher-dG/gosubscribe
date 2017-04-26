@@ -17,6 +17,7 @@ TOP_MAX = 10
 TEST = ARGV.include?('TEST')
 DB_NAME = TEST ? 'test' : 'o_subscribe'
 CHANNEL = TEST ? 'testing' : 'subscriptions'
+
 DB = PG.connect(dbname: DB_NAME)
 DB.prepare('insert_mapper', 'INSERT INTO mappers(mapper_id, mapper_name) VALUES ($1, $2)')
 DB.prepare('insert_user', 'INSERT INTO users(user_disc, user_id, user_name) VALUES ($1, $2, $3)')

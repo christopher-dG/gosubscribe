@@ -88,4 +88,8 @@ class Mapper
     return new_mapsets
   end
 
+  # Get the number of subs for this mapper.
+  def subs
+    DB.exec("SELECT COUNT(*) FROM subscriptions WHERE mapper_id = #{@id}").values[0][0]
+  end
 end

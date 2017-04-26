@@ -20,16 +20,15 @@ def failure(event, msg: 'something went wrong.')
 end
 
 # Create a fenced-code table of mappers and their sub counts.
-# Mappers: List of {'mapper' => x, 'sub_count' => y} hashes.
+# Mappers: Hash of {mapper_name => sub_count}.
 def format_counts(mappers)
   msg = ''
-  width = mappers.map {|m| m['mapper'].length}.max + 3
-  mappers.each do |mapper|
-    name = mapper['mapper']
-    s = mapper['subs'].to_i != 1 ? 's' : ''
-    msg += "#{name} #{' ' * (width - name.length)}#{mapper['subs']} subsriber#{s}\n"
+  width = mappers.keys.max_by(&:length).length + 3
+  mappers.sort_by {|k, v| v.to_i}.reverse.each do |mapper, subs|
+    s = subs.to_i != 1 ? 's' : ''
+    msg += "#{mapper} #{' ' * (width - mapper.length)}#{subs} subsriber#{s}\n"
   end
-  return msg
+  return "```#{msg}```"
 end
 
 # Subscribe or unsubscribe a user to/from a mapper.
@@ -187,26 +186,9 @@ def setup
     usernames = mappers.map {|m| m.username}
 
     if !mappers.empty?
-      msg = ''
-      sub_counts = {}
-
-      mappers.each do |mapper|
-        cmd = 'SELECT m.mapper_name, COUNT(*) subs FROM mappers m JOIN '
-        cmd += 'subscriptions s ON m.mapper_id = s.mapper_id WHERE '
-        cmd += "m.mapper_id = #{mapper.id} GROUP BY m.mapper_name"
-        result = DB.exec(cmd).to_a
-
-        if !result.empty?
-          sub_counts[mapper.username] = result[0]['subs']
-        else
-          sub_counts[mapper.username] = 0
-        end
-      end
-      sub_counts.sort_by {|p| p[0].downcase }.each do |pair|
-        s = pair[1].to_i != 1 ? 's' : ''
-        msg += "#{pair[0]}: #{pair[1]} subscriber#{s}\n"
-      end
-
+      mapper_counts = {}
+      mappers.each {|mapper| mapper_counts[mapper.username] = mapper.subs.to_i}
+      msg = format_counts(mapper_counts)
     else
       msg = failure(event)
     end
@@ -222,11 +204,14 @@ def setup
     usage: '!top [n]',
     max_args: 1,
     arg_types: [Integer],
-  ) do |event, num|
-    num = num.nil? ? DEFAULT_TOP : [num, TOP_MAX].min
+  ) do |event, max|
+    max = max.nil? ? DEFAULT_TOP : [max, TOP_MAX].min
     cmd = 'SELECT m.mapper_name mapper, COUNT(*) subs FROM subscriptions s JOIN '
     cmd += 'mappers m ON s.mapper_id = m.mapper_id GROUP BY mapper ORDER BY subs DESC'
-    "```#{format_counts(DB.exec(cmd).to_a[0...num])}```"
+    result = DB.exec(cmd).to_a[0...max]
+    mappers = {}
+    result.each {|m| mappers[m['mapper']] = m['subs']}
+    format_counts(mappers)
   end
 
   return bot
