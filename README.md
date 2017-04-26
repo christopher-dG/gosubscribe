@@ -4,8 +4,6 @@
 
 **Subscribe to osu! users to be notified when they upload new maps.**
 
-**Notice: o!subscribe is not quite up and running yet.**
-
 ## Usage
 
 Using o!subscribe requires that you are a member of the [o!subscribe Discord server](https://discord.gg/qaUhTKJ).
