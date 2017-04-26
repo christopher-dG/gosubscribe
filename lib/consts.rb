@@ -1,18 +1,18 @@
-SECRETS = File.expand_path("#{File.dirname(__FILE__)}/../secrets")
-TOKEN = File.open("#{SECRETS}/bot_token").read.chomp
-CLIENT_ID = File.open("#{SECRETS}/client_id").read.chomp
-CLIENT_SECRET = File.open("#{SECRETS}/client_secret").read.chomp
-OSU_KEY = File.open("#{SECRETS}/osu_key").read.chomp
-SEARCH_KEY = File.open("#{SECRETS}/search_key").read.chomp
+config = YAML.load_file(File.expand_path("#{File.dirname(__FILE__)}/../config.yml"))
+
+TOKEN = config['bot_token']
+CLIENT_ID = config['client_id']
+OSU_KEY = config['osu_key']
+SEARCH_KEY = config['search_key']
+
 OSU_URL = 'https://osu.ppy.sh/api'
 SEARCH_URL = "https://osusearch.com/api/search?key=#{SEARCH_KEY}"
 
-INTERVAL = 60 * 30  # Seconds between beatmap scans.
-CHAR_LIMIT = 2000
-TOTAL_SUB_LIMIT = 300
-CMD_LIMIT = 20
-DEFAULT_TOP = 3
-TOP_MAX = 10
+CHAR_LIMIT = 2000  # Discord message character limit.
+TOTAL_SUB_LIMIT = 300  # Maximum subscriptions.
+CMD_LIMIT = 20  # Maximum arguments per command.
+DEFAULT_TOP = 3  # Default number of top mappers to display.
+TOP_MAX = 15  # Maximum number of top mappers to display.
 
 TEST = ARGV.include?('TEST')
 DB_NAME = TEST ? 'test' : 'o_subscribe'

@@ -7,7 +7,7 @@
 ## Usage
 
 Using o!subscribe requires that you are a member of the [o!subscribe Discord server](https://discord.gg/qaUhTKJ).
-From there, enter `!help` in `#subscriptions` for command instructions.
+From there, check out `#subscriptions` to get started.
 
 ***
 

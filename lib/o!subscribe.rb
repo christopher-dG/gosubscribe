@@ -1,7 +1,9 @@
+require 'date'
 require 'discordrb'
 require 'httparty'
 require 'pg'
 require 'set'
+require 'yaml'
 
 require_relative 'consts'
 require_relative 'user'
@@ -22,11 +24,12 @@ end
 # Create a fenced-code table of mappers and their sub counts.
 # Mappers: Hash of {mapper_name => sub_count}.
 def format_counts(mappers)
+  return 'No subscriptions to display.' if mappers.empty?
   msg = ''
   width = mappers.keys.max_by(&:length).length + 3
   mappers.sort_by {|k, v| v.to_i}.reverse.each do |mapper, subs|
     s = subs.to_i != 1 ? 's' : ''
-    msg += "#{mapper} #{' ' * (width - mapper.length)}#{subs} subsriber#{s}\n"
+    msg += "#{mapper} #{' ' * (width - mapper.length)}#{subs} subscriber#{s}\n"
   end
   return "```#{msg}```"
 end
@@ -64,7 +67,7 @@ def edit_subscription(event, type)
 
     if subs + mappers.length > TOTAL_SUB_LIMIT  # Too many total subs.
       rem = TOTAL_SUB_LIMIT - subs
-      s = rem > 1 ? 's' : ''
+      s = rem != 1 ? 's' : ''
       msg = failure(
         event, msg: "you can only subscribe to #{rem} more mapper#{s} (#{mappers.length} given)."
       )
@@ -87,13 +90,12 @@ def edit_subscription(event, type)
   return msg
 end
 
-
 # Set up the bot and its commands.
 def setup
   bot = Discordrb::Commands::CommandBot.new(
     token: TOKEN,
     client_id: CLIENT_ID,
-    prefix: '!',
+    prefix: '.',
     channels: [CHANNEL],
     command_doesnt_exist_message: 'That command does not exist.',
 
@@ -105,7 +107,7 @@ def setup
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
     description: 'Subscribe to mappers.',
-    usage: '!sub username1, username2, :userid1, :userid2',
+    usage: '.sub username1, username2, :userid1, :userid2',
   ) do |event|
     edit_subscription(event, :sub)
   end
@@ -115,7 +117,7 @@ def setup
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
     description: 'Unsubscribe from mappers.',
-    usage: '!unsub username1, username2, :userid1, :userid2',
+    usage: '.unsub username1, username2, :userid1, :userid2',
   ) do |event|
     edit_subscription(event, :unsub)
   end
@@ -125,7 +127,7 @@ def setup
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
     description: 'List your subscriptions.',
-    usage: '!list',
+    usage: '.list',
   ) do |event|
     user = User.new(event.user)
 
@@ -140,7 +142,7 @@ def setup
         subscriptions.map! {|u| escape(u)}
         msg = "#{event.user.mention} is subscribed to: #{subscriptions.join(', ')}."
         if msg.length > CHAR_LIMIT
-          # Todo: Actually deal with this.
+          # Todo: Split into multiple messages.
           msg = "Too many mappers to display, showing as many as possible.\n#{msg}"[0..1995] + ' ...'
         end
       end
@@ -154,7 +156,7 @@ def setup
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
     description: 'Unsubscribe from all mappers.',
-    usage: '!purge',
+    usage: '.purge',
   ) do |event|
     user = User.new(event.user)
 
@@ -173,13 +175,13 @@ def setup
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
     description: 'Show mappers\' subscriber counts.',
-    usage: '!count username1, username2',
+    usage: '.count username1, username2',
   ) do |event|
     string = event.text.split[1..-1].join(' ')
     tokens = Set.new(string.split(',').reject {|s| empty?(s)}).map {|t| t.strip}
 
     if tokens.length > CMD_LIMIT
-      return msg = failure(event, msg: "you can only !count #{CMD_LIMIT} mappers at once.")
+      return msg = failure(event, msg: "you can only `.count` #{CMD_LIMIT} mappers at once.")
     end
 
     mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
@@ -200,8 +202,8 @@ def setup
     :top,
     bucket: :cmd,
     rate_limit_message: 'Wait %time% seconds.',
-    description: 'Show the top n mappers and their subscriber counts.',
-    usage: '!top [n]',
+    description: 'Show the top `n` mappers and their subscriber counts.',
+    usage: '.top [n]',
     max_args: 1,
     arg_types: [Integer],
   ) do |event, max|
@@ -211,6 +213,7 @@ def setup
     result = DB.exec(cmd).to_a[0...max]
     mappers = {}
     result.each {|m| mappers[m['mapper']] = m['subs']}
+
     format_counts(mappers)
   end
 
@@ -219,6 +222,8 @@ end
 
 
 if __FILE__ == $0
+  now = DateTime.now
+  puts("#{now.year}-#{now.month}-#{now.day} #{now.hour}:#{now.minute}")
   puts("DB: #{DB_NAME}")
   puts("Channel: #{CHANNEL}")
   BOT = setup

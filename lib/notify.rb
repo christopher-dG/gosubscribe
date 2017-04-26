@@ -8,7 +8,7 @@ def notify(map, mapper)
   DB.exec(cmd).each do |data|
     user = User.new(data).to_discord_user
     begin
-      user.pm("[experimental] New map by #{mapper.username}: https://osu.ppy.sh/b/#{map['beatmap_id']}")
+      user.pm("New map by #{mapper.username}: https://osu.ppy.sh/b/#{map['beatmap_id']}")
     rescue
       puts("Sending to #{user.username} for #{mapper.username}'s map failed.")
     else
@@ -18,6 +18,7 @@ def notify(map, mapper)
 end
 
 if __FILE__ == $0
+  puts("#{now.year}-#{now.month}-#{now.day} #{now.hour}:#{now.minute}")
   BOT = setup
   JSON.load(HTTParty.get(SEARCH_URL).parsed_response)['beatmaps'].each do |map|
     mapper_name = map['mapper']

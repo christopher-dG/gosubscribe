@@ -1,13 +1,11 @@
 class User
 
-  attr_accessor :bot
   attr_accessor :id  # Long user id.
   attr_accessor :username
   attr_accessor :disc  # 4-digit id.
   attr_accessor :error
 
   def initialize(data)
-    @bot = BOT
     if data.is_a?(String)
       db.exec("SELECT * FROM users WHERE user_disc = #{data}") do |result|
         if result.empty?
@@ -37,6 +35,7 @@ class User
     @error = false
   end
 
+  # Convert a User to a Discordrb::User.
   def to_discord_user
     data = {
       'username' => @username,
