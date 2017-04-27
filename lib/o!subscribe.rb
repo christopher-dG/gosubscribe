@@ -66,7 +66,7 @@ def edit_subscription(event, type)
     sub_count = DB[:subscriptions].where(:user_disc => user.disc).count
 
     if sub_count + mappers.length > TOTAL_SUB_LIMIT
-      remaining = TOTAL_SUB_LIMIT - sub_count
+      rem = TOTAL_SUB_LIMIT - sub_count
       s = rem != 1 ? 's' : ''
       msg = failure(
         event, msg: "you can only subscribe to #{rem} more mapper#{s} (#{mappers.length} given)."
@@ -187,12 +187,16 @@ def setup
     end
 
     mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
-    usernames = mappers.map {|m| m.username}
-    ids = mappers.map {|m| m.id}
-
     if !mappers.empty?
-      ds = DB[:mappers].where(:mapper_name => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
-      msg = format_counts(ds.map {|r| [r[:mapper_name], r[:count]]}.to_h)
+      usernames = mappers.map {|m| m.username}
+      ids = mappers.map {|m| m.id}
+      ds = DB[:mappers].where(:mapper_id => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
+      if ds.empty?
+        sub_counts = usernames.map {|u| [u, 0]}.to_h
+      else
+        sub_counts = ds.map {|r| [r[:mapper_name], r[:count]]}.to_h
+      end
+      msg = format_counts(sub_counts)
     else
       msg = failure(event)
     end
