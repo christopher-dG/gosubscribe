@@ -1,7 +1,7 @@
 require 'date'
 require 'discordrb'
 require 'httparty'
-require 'pg'
+require 'sequel'
 require 'set'
 require 'yaml'
 
@@ -63,11 +63,10 @@ def edit_subscription(event, type)
   return failure(event) if mappers.empty?
 
   if type == :sub
-    subs = DB.exec("SELECT COUNT(*) FROM subscriptions WHERE user_disc = #{user.disc}")
-    subs = subs.values[0][0].to_i
+    sub_count = DB[:subscriptions].where(:user_disc => user.disc).count
 
-    if subs + mappers.length > TOTAL_SUB_LIMIT  # Too many total subs.
-      rem = TOTAL_SUB_LIMIT - subs
+    if sub_count + mappers.length > TOTAL_SUB_LIMIT
+      remaining = TOTAL_SUB_LIMIT - sub_count
       s = rem != 1 ? 's' : ''
       msg = failure(
         event, msg: "you can only subscribe to #{rem} more mapper#{s} (#{mappers.length} given)."
@@ -79,14 +78,16 @@ def edit_subscription(event, type)
     end
 
   else  # :unsub
-    cmd = 'SELECT mapper_name from subscriptions JOIN mappers '
-    cmd += 'ON subscriptions.mapper_id = mappers.mapper_id '
-    cmd += "WHERE user_disc = #{user.disc}"
-    subs = DB.exec(cmd).values.map {|v| v[0]}
+    ds = DB[:subscriptions].natural_join(:mappers).where(:user_disc => user.disc)
+    subs = ds.map {|s| s[:mapper_name]}
     mappers.reject! {|m| !subs.include?(m.username)}
-    usernames = usernames.reject {|u| !subs.include?(u)}.map {|u| escape(u)}
-    user.unsubscribe(mappers)
-    msg = "#{event.user.mention} has unsubscribed from: #{usernames.join(', ')}."
+    if !mappers.empty?
+      usernames = usernames.reject {|u| !subs.include?(u)}.map {|u| escape(u)}
+      user.unsubscribe(mappers)
+      msg = "#{event.user.mention} has unsubscribed from: #{usernames.join(', ')}."
+    else
+      msg = failure(event)
+    end
   end
   return msg
 end
@@ -187,11 +188,11 @@ def setup
 
     mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
     usernames = mappers.map {|m| m.username}
+    ids = mappers.map {|m| m.id}
 
     if !mappers.empty?
-      mapper_counts = {}
-      mappers.each {|mapper| mapper_counts[mapper.username] = mapper.subs.to_i}
-      msg = format_counts(mapper_counts)
+      ds = DB[:mappers].where(:mapper_name => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
+      msg = format_counts(ds.map {|r| [r[:mapper_name], r[:count]]}.to_h)
     else
       msg = failure(event)
     end
@@ -209,13 +210,9 @@ def setup
     arg_types: [Integer],
   ) do |event, max|
     max = max.nil? ? DEFAULT_TOP : [max, TOP_MAX].min
-    cmd = 'SELECT m.mapper_name mapper, COUNT(*) subs FROM subscriptions s JOIN '
-    cmd += 'mappers m ON s.mapper_id = m.mapper_id GROUP BY mapper ORDER BY subs DESC'
-    result = DB.exec(cmd).to_a[0...max]
-    mappers = {}
-    result.each {|m| mappers[m['mapper']] = m['subs']}
-
-    format_counts(mappers)
+    ds = DB[:subscriptions].natural_join(:mappers).select(:count, :mapper_name)
+    result = ds.group_and_count(:mapper_name).order(:count).reverse.all[0...max]
+    format_counts(result.map! {|r| [r[:mapper_name], r[:count]]}.to_h)
   end
 
   return bot

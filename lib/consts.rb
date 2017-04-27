@@ -1,4 +1,6 @@
 config = YAML.load_file(File.expand_path("#{File.dirname(__FILE__)}/../config.yml"))
+db_user = config['db_user']
+db_pass = config['db_pass']
 
 TOKEN = config['bot_token']
 CLIENT_ID = config['client_id']
@@ -18,6 +20,8 @@ TEST = ARGV.include?('TEST')
 DB_NAME = TEST ? 'test' : 'o_subscribe'
 CHANNEL = TEST ? 'testing' : 'subscriptions'
 
-DB = PG.connect(dbname: DB_NAME)
-DB.prepare('insert_mapper', 'INSERT INTO mappers(mapper_id, mapper_name) VALUES ($1, $2)')
-DB.prepare('insert_user', 'INSERT INTO users(user_disc, user_id, user_name) VALUES ($1, $2, $3)')
+DB = Sequel.postgres(DB_NAME, :host=>'localhost', :user=>db_user, :password=>db_pass)
+DB[:mappers].prepare(:insert, :insert_mapper, :mapper_name => :$name, :mapper_id => :$id)
+DB[:users].prepare(:insert, :insert_user, :user_disc => :$disc, :user_id => :$id, :user_name => :$name)
+DB[:subscriptions].prepare(:insert, :subscribe, :user_disc => :$disc, :mapper_id => :$mapper)
+# Todo: More prepared statements.

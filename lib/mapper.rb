@@ -43,25 +43,18 @@ class Mapper
 
   # Insert a mapper into the database.
   def update_db
-    result = DB.exec("SELECT * FROM mappers WHERE mapper_id = #{@id}")
-    if result.ntuples == 0
-      # Add the mapper to the database.
-      DB.exec_prepared('insert_mapper', [@id, @username])
+    ds = DB[:mappers].where(:mapper_id => @id)
+    if ds.first.nil?
+      DB.call(:insert_mapper, :id => @id, :name => @username)
       mapset_ids = request_beatmaps
       if !mapset_ids.empty?
-        # Add the mapper's maps to the database.
-        cmd = 'INSERT INTO maps(mapper_id, mapset_id) VALUES '
-        cmd += mapset_ids.map {|m| "(#{@id}, #{m})"}.join(', ')
-        DB.exec(cmd)
+        DB[:maps].multi_insert(mapset_ids.map {|m| {:mapper_id => @id, :mapset_id => m}})
       end
-    # Todo: Concurrent inserts of the same mapper may be causing duplicate key errors.
     else
-      mapper = result.to_a[0]
-      if mapper['mapper_name'] != @username
-        # Name change: rename the old mapper to the new.
-        DB.exec(
-          "UPDATE mappers SET mapper_name = '#{@username}' WHERE mapper_id = #{@id}"
-        )
+      ds = DB[:mappers].select(:mapper_name).where(:mapper_id => @id)
+      if ds.first[:mapper_name] != @username
+        # The user has changed their name, so update the row with the new name.
+        DB[:mappers].where(:mapper_id => @id).update(:mapper_name => @username)
       end
     end
   end
@@ -74,24 +67,9 @@ class Mapper
 
   # Get any new maps by the mapper.
   def diff_mapper
-    existing_mapsets = DB.exec("SELECT mapset_id FROM maps WHERE mapper_id = #{@id}")
-    existing_mapsets.map! {|m| m.values[0]}
-    new_mapsets = []
-
-    mapset_ids = request_beatmaps
-
-    mapset_ids.each do |mapset_id|
-      if !existing_mapsets.include?(mapset_id)
-        new_mapsets.push(mapset_id)
-        DB.exec("INSERT INTO maps(mapper_id, mapset_id) VALUES (#{@id}, #{mapset_id})")
-      end
-    end
-
-    return new_mapsets
+    new_maps = DB[:maps].select(:mapset_id).where(:mapper_id => @id).all.values - request_beatmaps
+    DB[:maps].multi_insert(new_maps.map {|m| {:mapper_id => @id, :mapset_id => m}})
+    return new_maps
   end
 
-  # Get the number of subs for this mapper.
-  def subs
-    DB.exec("SELECT COUNT(*) FROM subscriptions WHERE mapper_id = #{@id}").values[0][0]
-  end
 end

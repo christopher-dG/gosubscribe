@@ -5,32 +5,31 @@ class User
   attr_accessor :disc  # 4-digit id.
   attr_accessor :error
 
+  # Data:
+  # - String or integer: user discriminator.
+  # - Hash: Hash built from a database entry.
+  # - Discordrb::User: Discord user.
   def initialize(data)
-    if data.is_a?(String)
-      db.exec("SELECT * FROM users WHERE user_disc = #{data}") do |result|
-        if result.empty?
-          @error = true
-        else
-          @disc, @id, @username = result.to_a[0].values
-        end
-      end
-    elsif data.is_a?(Hash)
-      @id = data['user_id']
-      @username = data['user_name']
-      @disc = data['user_disc']
-    else
+    if [String, Integer].include?(data.class)
       begin
-        @id = data.id
-        @username = data.username
-        @disc = data.discriminator
+        ds = DB[:users].where(:user_disc => data).select(:user_disc, :user_id, :user_name)
+        @disc, @id, @username = ds.first.values
       rescue
         @error = true
         return
       end
+    elsif data.is_a?(Hash)
+      @id = data[:user_id]
+      @username = data[:user_name]
+      @disc = data[:user_disc]
+    else
+      @id = data.id
+      @username = data.username
+      @disc = data.discriminator
     end
 
-    if DB.exec("SELECT * FROM users WHERE user_disc = #{@disc}").ntuples == 0
-      DB.exec_prepared('insert_user', [@disc, @id, @username])
+    if  DB[:users].where(:user_disc => @disc).empty?
+      DB.call(:insert_user, :disc => @disc, :id => @id, :name => @username)
     end
     @error = false
   end
@@ -54,7 +53,7 @@ class User
   def subscribe(mappers)
     mappers.each do |mapper|
       begin
-        DB.exec("INSERT INTO subscriptions(user_disc, mapper_id) VALUES (#{@disc}, #{mapper.id})")
+        DB.call(:subscribe, :disc => @disc, :mapper => mapper.id)
       rescue
         # Assume that it's a duplicate key.
       end
@@ -62,25 +61,19 @@ class User
   end
 
   # Unsubscribe the user from some given mappers.
-  # mapper: List of mappers to unsubscribe from.
+  # mappers: List of mappers to unsubscribe from.
   def unsubscribe(mappers)
-    mapper_ids = mappers.map {|mapper| mapper.id}
-    cmd = "DELETE FROM subscriptions WHERE user_disc = #{@disc} AND mapper_id in "
-    cmd += "(#{mapper_ids.join(', ')})"
-    DB.exec(cmd)
+    ds = DB[:subscriptions].where(:user_disc => @disc, :mapper_id => mappers)
+    ds.delete
   end
 
   # Return the usernames of all mappers the user is subscribed to.
   def list
-    names = []
-    cmd = "SELECT mapper_name FROM mappers JOIN subscriptions ON "
-    cmd += "mappers.mapper_id = subscriptions.mapper_id WHERE "
-    cmd += "subscriptions.user_disc = #{@disc}"
-    return DB.exec(cmd).values.map {|m| m[0]}.sort_by(&:downcase)
+    ds = DB[:mappers].natural_join(:subscriptions).where(:user_disc => @disc)
+    ds.map {|m| m[:mapper_name]}.sort_by(&:downcase)
   end
 
   # Unsubscribe from all mappers.
-  # user: User to be unsubscribed.
-  def purge() DB.exec("DELETE FROM subscriptions WHERE user_disc = #{@disc}") end
+  def purge() DB[:subscriptions].where(:user_disc => @disc).delete end
 
 end
