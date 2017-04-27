@@ -39,6 +39,8 @@ class Mapper
     @error = false
   end
 
+  def to_s() "#{@username}:#{@id}:#{@error}" end
+
   # Insert a mapper into the database.
   def update_db
     result = DB.exec("SELECT * FROM mappers WHERE mapper_id = #{@id}")

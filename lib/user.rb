@@ -35,6 +35,8 @@ class User
     @error = false
   end
 
+  def to_s() "#{@username}:#{@disc}:#{@id}:#{@error}" end
+
   # Convert a User to a Discordrb::User.
   def to_discord_user
     data = {

@@ -43,7 +43,8 @@ def edit_subscription(event, type)
   return failure(event) if user.error
 
   string = event.text.split[1..-1].join(' ')
-  tokens = Set.new(string.split(', ').reject {|s| empty?(s)}).map {|t| t.strip}
+  tokens = Set.new(string.split(',').reject {|s| empty?(s)}.map {|t| t.strip})
+
   return failure(
            event, msg: "you can only supply up to #{CMD_LIMIT} mappers at once."
          ) if tokens.length > CMD_LIMIT
