@@ -63,7 +63,7 @@ class User
   # Unsubscribe the user from some given mappers.
   # mappers: List of mappers to unsubscribe from.
   def unsubscribe(mappers)
-    ds = DB[:subscriptions].where(:user_disc => @disc, :mapper_id => mappers)
+    ds = DB[:subscriptions].where(:user_disc => @disc, :mapper_id => mappers.map {|m| m.id})
     ds.delete
   end
 

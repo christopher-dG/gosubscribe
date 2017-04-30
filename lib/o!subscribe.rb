@@ -139,7 +139,7 @@ def setup
       subscriptions = user.list
 
       if subscriptions.empty?
-        msg ="#{event.user.mention} is not subscribed any mappers."
+        msg = "#{event.user.mention} is not subscribed any mappers."
       else
         subscriptions.map! {|u| escape(u)}
         msg = "#{event.user.mention} is subscribed to: #{subscriptions.join(', ')}."
@@ -225,7 +225,7 @@ end
 
 if __FILE__ == $0
   now = DateTime.now
-  puts("#{now.year}-#{now.month}-#{now.day} #{now.hour}:#{now.minute}")
+  # puts("#{now.year}-#{now.month}-#{now.day} #{now.hour}:#{now.minute}")
   puts("DB: #{DB_NAME}")
   puts("Channel: #{CHANNEL}")
   BOT = setup

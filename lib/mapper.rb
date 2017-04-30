@@ -30,12 +30,7 @@ class Mapper
       return
     end
 
-    begin
-      update_db
-    rescue
-      @error = true
-    end
-
+    update_db
     @error = false
   end
 
@@ -43,15 +38,22 @@ class Mapper
 
   # Insert a mapper into the database.
   def update_db
-    ds = DB[:mappers].where(:mapper_id => @id)
-    if ds.first.nil?
+    ds = ds = DB[:mappers].select(:mapper_name).where(:mapper_id => @id)
+    if ds.empty?
       DB.call(:insert_mapper, :id => @id, :name => @username)
-      mapset_ids = request_beatmaps
-      if !mapset_ids.empty?
-        DB[:maps].multi_insert(mapset_ids.map {|m| {:mapper_id => @id, :mapset_id => m}})
+      # DB[:maps].multi_insert(
+      #   request_beatmaps.map {|m|
+      #     {:mapper_id => @id, :mapset_id => m['id'], :status => m['status']}
+      #   }
+      # )
+      # end
+      request_beatmaps.each do |map|
+        begin
+          DB.call(:insert_map, :mapper => @id, :map => map[:id], :status => map[:status])
+        rescue  # Weird duplicate key issue where map has multiple statuses.
+        end
       end
     else
-      ds = DB[:mappers].select(:mapper_name).where(:mapper_id => @id)
       if ds.first[:mapper_name] != @username
         # The user has changed their name, so update the row with the new name.
         DB[:mappers].where(:mapper_id => @id).update(:mapper_name => @username)
@@ -59,17 +61,12 @@ class Mapper
     end
   end
 
-  # Get a list of all the mapper's beatmaps.
+  # Get a list of all the mapper's beatmaps. Returns a list of hashes.
   def request_beatmaps
+    # Todo: Make sure there are no duplicates here.
     url = "#{OSU_URL}/get_beatmaps?k=#{OSU_KEY}&u=#{@id}&type=id"
-    return Set.new(HTTParty.get(url).parsed_response.map {|b| b['beatmapset_id']})
-  end
-
-  # Get any new maps by the mapper.
-  def diff_mapper
-    new_maps = DB[:maps].select(:mapset_id).where(:mapper_id => @id).all.values - request_beatmaps
-    DB[:maps].multi_insert(new_maps.map {|m| {:mapper_id => @id, :mapset_id => m}})
-    return new_maps
+    maps = HTTParty.get(url).parsed_response
+    return Set.new(maps.map {|m| {:id => m['beatmapset_id'], :status => m['approved']}})
   end
 
 end

@@ -22,5 +22,6 @@ CREATE TABLE subscriptions(
 CREATE TABLE maps(
   mapper_id  INTEGER REFERENCES mappers ON DELETE CASCADE,
   mapset_id INTEGER,
+  status INTEGER,
   PRIMARY KEY(mapper_id, mapset_id)
 );
