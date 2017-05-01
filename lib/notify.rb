@@ -57,7 +57,7 @@ if __FILE__ == $0
       mapper = Mapper.new(username: mapper_name)
       if DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).empty?
         notify(map, mapper)
-        #DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
+        DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
       end
     end
   end

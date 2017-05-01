@@ -28,8 +28,13 @@ class User
       @disc = data.discriminator
     end
 
-    if  DB[:users].where(:user_disc => @disc).empty?
+    ds = DB[:users].where(:user_disc => @disc)
+    if  ds.empty?
       DB.call(:insert_user, :disc => @disc, :id => @id, :name => @username)
+    else
+      if ds.first[:user_name] != @username  # Update with new username.
+        DB[:users].where(:user_disc => @disc).update(:user_name => @username)
+      end
     end
     @error = false
   end
