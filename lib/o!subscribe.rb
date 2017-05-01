@@ -213,6 +213,9 @@ def setup
     max_args: 1,
     arg_types: [Integer],
   ) do |event, max|
+    if max <= 0
+      return 'Number must be positive.'
+    end
     max = max.nil? ? DEFAULT_TOP : [max, TOP_MAX].min
     ds = DB[:subscriptions].natural_join(:mappers).select(:count, :mapper_name)
     result = ds.group_and_count(:mapper_name).order(:count).reverse.all[0...max]

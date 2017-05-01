@@ -51,11 +51,12 @@ if __FILE__ == $0
   mapsets = []  # Mapsets we've already seen.
   JSON.load(HTTParty.get(SEARCH_URL).parsed_response)['beatmaps'].each do |map|
     mapper_name = map['mapper']
+    status = map['beatmap_status']
     mapsets.include?(map['beatmapset_id']) && next
     mapsets.push(map['beatmapset_id'])
     if !DB[:mappers].where(:mapper_name => mapper_name).empty?
       mapper = Mapper.new(username: mapper_name)
-      if DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).empty?
+      if DB[:maps].where(:mapper_id => mapper.id, :mapset_id => status).first[:status] != status
         notify(map, mapper)
         DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
       end
