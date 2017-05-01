@@ -1,4 +1,4 @@
-config = YAML.load_file(File.expand_path("#{File.dirname(__FILE__)}/../config.yml"))
+config = YAML.load_file(File.join(Dir.home, 'o!subscribe', 'config.yml'))
 db_user = config['db_user']
 db_pass = config['db_pass']
 
@@ -16,7 +16,7 @@ CMD_LIMIT = 20  # Maximum arguments per command.
 DEFAULT_TOP = 3  # Default number of top mappers to display.
 TOP_MAX = 15  # Maximum number of top mappers to display.
 
-TEST = ARGV.include?('TEST') || 'o!subscribe' != $0
+TEST = ARGV.include?('TEST') || $0 == 'irb'
 DB_NAME = TEST ? 'test' : 'o_subscribe'
 CHANNEL = TEST ? 'testing' : 'subscriptions'
 
