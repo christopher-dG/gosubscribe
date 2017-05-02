@@ -17,7 +17,7 @@ def notify(map, mapper)
   map_str = "#{map['artist']} - #{map['title']}"
   is_new = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).empty?
   if !is_new
-    old_status = STATUS_MAP[B[:maps].where(mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).first[:status]]
+    old_status = STATUS_MAP[DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).first[:status]]
   end
   status = STATUS_MAP[map['beatmap_status'].to_i]
   if is_new
@@ -51,14 +51,19 @@ if __FILE__ == $0
   mapsets = []  # Mapsets we've already seen.
   JSON.load(HTTParty.get(SEARCH_URL).parsed_response)['beatmaps'].each do |map|
     mapper_name = map['mapper']
-    status = map['beatmap_status']
+    status = map['beatmap_status'].to_i
     mapsets.include?(map['beatmapset_id']) && next
     mapsets.push(map['beatmapset_id'])
     if !DB[:mappers].where(:mapper_name => mapper_name).empty?
       mapper = Mapper.new(username: mapper_name)
-      if DB[:maps].where(:mapper_id => mapper.id, :mapset_id => status).first[:status] != status
+      ds = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'])
+      if ds.empty? || ds.first[:status] != status
         notify(map, mapper)
-        DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
+        if ds.empty?
+          DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
+        else
+          DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).update(:status => status)
+        end
       end
     end
   end
