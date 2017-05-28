@@ -218,9 +218,15 @@ def setup
     arg_types: [Integer],
   ) do |event, max|
     max = max.nil? ? DEFAULT_TOP : [max, TOP_MAX].min
-    ds = DB[:subscriptions].natural_join(:mappers).select(:count, :mapper_name)
-    result = ds.group_and_count(:mapper_name).order(:count).reverse.all[0...max]
-    format_counts(result.map! {|r| [r[:mapper_name], r[:count]]}.to_h)
+    if max <= 0
+      msg = 'Supplied number to `.top` must be greater than 0.'
+    else
+      ds = DB[:subscriptions].natural_join(:mappers).select(:count, :mapper_name)
+      result = ds.group_and_count(:mapper_name).order(:count).reverse.all[0...max]
+      msg = format_counts(result.map! {|r| [r[:mapper_name], r[:count]]}.to_h)
+    end
+
+    msg
   end
 
   return bot
