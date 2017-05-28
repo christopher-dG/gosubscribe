@@ -50,20 +50,23 @@ if __FILE__ == $0
   puts("channel: #{CHANNEL}")
   BOT = setup
   mapsets = []  # Mapsets we've already seen.
-  JSON.load(HTTParty.get(SEARCH_URL).parsed_response)['beatmaps'].each do |map|
-    mapper_name = map['mapper']
-    status = map['beatmap_status'].to_i
-    mapsets.include?(map['beatmapset_id']) && next
-    mapsets.push(map['beatmapset_id'])
-    if !DB[:mappers].where(:mapper_name => mapper_name).empty?
-      mapper = Mapper.new(username: mapper_name)
-      ds = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'])
-      if ds.empty? || ds.first[:status] != status
-        notify(map, mapper)
-        if ds.empty?
-          DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
-        else
-          DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).update(:status => status)
+  2.times do |i|
+    result = HTTParty.get("#{SEARCH_URL}&offset=#{i}").parsed_response
+    JSON.load(result)['beatmaps'].each do |map|
+      mapper_name = map['mapper']
+      status = map['beatmap_status'].to_i
+      mapsets.include?(map['beatmapset_id']) && next
+      mapsets.push(map['beatmapset_id'])
+      if !DB[:mappers].where(:mapper_name => mapper_name).empty?
+        mapper = Mapper.new(username: mapper_name)
+        ds = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'])
+        if ds.empty? || ds.first[:status] != status
+          notify(map, mapper)
+          if ds.empty?
+            DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
+          else
+            DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).update(:status => status)
+          end
         end
       end
     end
