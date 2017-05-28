@@ -1,4 +1,4 @@
-config = YAML.load_file(File.join(Dir.home, 'o!subscribe', 'config.yml'))
+config = YAML.load_file(File.expand_path("#{File.dirname(__FILE__)}/../config.yml"))
 db_user = config['db_user']
 db_pass = config['db_pass']
 

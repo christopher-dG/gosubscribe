@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'date'
 require 'discordrb'
 require 'httparty'
@@ -89,7 +90,8 @@ def edit_subscription(event, type)
       msg = failure(event)
     end
   end
-  return msg
+
+  msg
 end
 
 # Set up the bot and its commands.
@@ -182,23 +184,25 @@ def setup
     string = event.text.split[1..-1].join(' ')
     tokens = Set.new(string.split(',').reject {|s| empty?(s)}).map {|t| t.strip}
 
-    if tokens.length > CMD_LIMIT
-      return msg = failure(event, msg: "you can only `.count` #{CMD_LIMIT} mappers at once.")
-    end
-
-    mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
-    if !mappers.empty?
-      usernames = mappers.map {|m| m.username}
-      ids = mappers.map {|m| m.id}
-      ds = DB[:mappers].where(:mapper_id => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
-      if ds.empty?
-        sub_counts = usernames.map {|u| [u, 0]}.to_h
-      else
-        sub_counts = ds.map {|r| [r[:mapper_name], r[:count]]}.to_h
-      end
-      msg = format_counts(sub_counts)
+    if tokens.empty?
+      msg = failure(event, msg: 'you need to supply at least one mapper.')
+    elsif tokens.length > CMD_LIMIT
+      msg = failure(event, msg: "you can only `.count` #{CMD_LIMIT} mappers at once.")
     else
-      msg = failure(event)
+      mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
+      if !mappers.empty?
+        usernames = mappers.map {|m| m.username}
+        ids = mappers.map {|m| m.id}
+        ds = DB[:mappers].where(:mapper_id => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
+        if ds.empty?
+          sub_counts = usernames.map {|u| [u, 0]}.to_h
+        else
+          sub_counts = ds.map {|r| [r[:mapper_name], r[:count]]}.to_h
+        end
+        msg = format_counts(sub_counts)
+      else
+        msg = failure(event)
+      end
     end
 
     msg
@@ -213,9 +217,6 @@ def setup
     max_args: 1,
     arg_types: [Integer],
   ) do |event, max|
-    if max <= 0
-      return 'Number must be positive.'
-    end
     max = max.nil? ? DEFAULT_TOP : [max, TOP_MAX].min
     ds = DB[:subscriptions].natural_join(:mappers).select(:count, :mapper_name)
     result = ds.group_and_count(:mapper_name).order(:count).reverse.all[0...max]

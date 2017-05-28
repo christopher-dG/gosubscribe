@@ -1,3 +1,4 @@
+# coding: utf-8
 require_relative 'o!subscribe'
 
 STATUS_MAP = {
@@ -23,7 +24,7 @@ def notify(map, mapper)
   if is_new
     puts("Notifying for new map #{map_str} by #{mapper.username}")
   else
-    puts("Notifying for updated map #{map_str} by #{mapper.username}: #{old_status} -> #{status}")
+    puts("Notifying for updated map #{map_str} by #{mapper.username}: #{old_status} → #{status}")
   end
   ds = DB[:users].natural_join(:subscriptions).where(:mapper_id => mapper.id)
   ds.each do |sub|
@@ -34,7 +35,7 @@ def notify(map, mapper)
       if is_new
         user.pm("New map by #{mapper.username}: #{map_str}\nhttps://osu.ppy.sh/s/#{map['beatmapset_id']}")
       else
-        user.pm("#{map_str} by #{mapper.username} has been updated: #{old_status} -> #{status}\nhttps://osu.ppy.sh/s/#{map['beatmapset_id']}")
+        user.pm("#{map_str} by #{mapper.username} has been updated: #{old_status} → #{status}\nhttps://osu.ppy.sh/s/#{map['beatmapset_id']}")
       end
     rescue  # User probably doesn't allow PMs from non-friends.
       puts("Sending to #{username}##{disc} failed.")
