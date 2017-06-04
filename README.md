@@ -2,11 +2,12 @@
 
 [![Discord](https://img.shields.io/badge/Discord-o!subscribe-blue.svg)](https://discord.gg/qaUhTKJ)
 
-**Subscribe to osu! users to be notified when they upload new maps.**
+**Subscribe to osu! users to be notified about their new/updated maps.**
 
 ## Usage
 
-Using o!subscribe requires that you are a member of the [o!subscribe Discord server](https://discord.gg/qaUhTKJ).
+Using o!subscribe requires that you are a member of the
+[o!subscribe Discord server](https://discord.gg/qaUhTKJ).
 From there, check out `#subscriptions` to get started.
 
 ***

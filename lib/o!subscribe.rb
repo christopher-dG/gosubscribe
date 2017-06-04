@@ -235,7 +235,6 @@ end
 
 if __FILE__ == $0
   now = DateTime.now
-  # puts("#{now.year}-#{now.month}-#{now.day} #{now.hour}:#{now.minute}")
   puts("DB: #{DB_NAME}")
   puts("Channel: #{CHANNEL}")
   BOT = setup
