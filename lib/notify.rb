@@ -52,6 +52,10 @@ if __FILE__ == $0
   mapsets = []  # Mapsets we've already seen.
   2.times do |i|
     result = HTTParty.get("#{SEARCH_URL}&offset=#{i}").parsed_response
+    if result.start_with?('Server error')
+      puts(result)
+      exit
+    end
     JSON.load(result)['beatmaps'].each do |map|
       mapper_name = map['mapper']
       status = map['beatmap_status'].to_i
