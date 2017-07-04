@@ -12,7 +12,7 @@ require_relative 'mapper'
 
 
 # Return true if a string is empty or comprised of all whitespace.
-def empty?(s) s.empty? || s =~ /\s*/ end
+def empty?(s) s.empty? || s =~ /\A\s*\z/ end
 
 # Escape Markdown underlining.
 def escape(s) s.gsub('_', '\_') end
