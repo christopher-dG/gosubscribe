@@ -11,8 +11,8 @@ require_relative 'user'
 require_relative 'mapper'
 
 
-# Return true if a string is empty or comprised of all spaces.
-def empty?(s) s.empty? || s.each_char.all? {|c| c == ' '} end
+# Return true if a string is empty or comprised of all whitespace.
+def empty?(s) s.empty? || s =~ /\s*/ end
 
 # Escape Markdown underlining.
 def escape(s) s.gsub('_', '\_') end

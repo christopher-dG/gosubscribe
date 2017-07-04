@@ -59,7 +59,7 @@ if __FILE__ == $0
     JSON.load(result)['beatmaps'].each do |map|
       mapper_name = map['mapper']
       status = map['beatmap_status'].to_i
-      mapsets.include?(map['beatmapset_id']) && next
+      next if mapsets.include?(map['beatmapset_id'])
       mapsets.push(map['beatmapset_id'])
       if !DB[:mappers].where(:mapper_name => mapper_name).empty?
         mapper = Mapper.new(username: mapper_name)
