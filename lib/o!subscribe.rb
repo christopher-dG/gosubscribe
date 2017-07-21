@@ -99,9 +99,6 @@ def setup
     token: TOKEN,
     client_id: CLIENT_ID,
     prefix: '.',
-    channels: [CHANNEL],
-    command_doesnt_exist_message: 'That command does not exist.',
-
   )
   bot.bucket(:cmd, delay: 1.5)  # Rate limiter.
 
@@ -233,9 +230,8 @@ end
 
 
 if __FILE__ == $0
-  now = DateTime.now
+  puts(Time.now)
   puts("DB: #{DB_NAME}")
-  puts("Channel: #{CHANNEL}")
   BOT = setup
   BOT.run
 end
