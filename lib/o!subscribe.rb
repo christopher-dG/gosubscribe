@@ -19,7 +19,7 @@ def escape(s) s.gsub('_', '\_') end
 
 # Respond with an error message.
 def failure(event, msg: 'something went wrong.')
-  "Sorry #{event.user.mention}, #{msg}"
+ return "Sorry #{event.user.mention}, #{msg}"
 end
 
 # Create a fenced-code table of mappers and their sub counts.
@@ -59,12 +59,12 @@ def edit_subscription(event, type)
   end
 
   mappers.reject! {|m| m.error}
-  usernames = mappers.map {|m| m.username}
+  usernames = mappers.map {|m| escape(m.username)}
 
   return failure(event) if mappers.empty?
 
   if type == :sub
-    sub_count = DB[:subscriptions].where(:user_disc => user.disc).count
+    sub_count = DB[:subscriptions].where(:user_id => user.id).count
 
     if sub_count + mappers.length > TOTAL_SUB_LIMIT
       rem = TOTAL_SUB_LIMIT - sub_count
@@ -74,16 +74,15 @@ def edit_subscription(event, type)
       )
     else
       user.subscribe(mappers)
-      usernames.map! {|u| escape(u)}
       msg = "#{event.user.mention} has subscribed to: #{usernames.join(', ')}."
     end
 
   else  # :unsub
-    ds = DB[:subscriptions].natural_join(:mappers).where(:user_disc => user.disc)
+    ds = DB[:subscriptions].natural_join(:mappers).where(:user_id => user.id)
     subs = ds.map {|s| s[:mapper_name]}
     mappers.reject! {|m| !subs.include?(m.username)}
     if !mappers.empty?
-      usernames = usernames.reject {|u| !subs.include?(u)}.map {|u| escape(u)}
+      usernames.select! {|u| subs.include?(u)}
       user.unsubscribe(mappers)
       msg = "#{event.user.mention} has unsubscribed from: #{usernames.join(', ')}."
     else
@@ -138,12 +137,11 @@ def setup
     if user.error
       msg = failure(event)
     else
-      subscriptions = user.list
+      subscriptions = user.list.map {|u| escape(u)}
 
       if subscriptions.empty?
         msg = "#{event.user.mention} is not subscribed any mappers."
       else
-        subscriptions.map! {|u| escape(u)}
         msg = "#{event.user.mention} is subscribed to: #{subscriptions.join(', ')}."
         if msg.length > CHAR_LIMIT
           # Todo: Split into multiple messages.
@@ -190,18 +188,19 @@ def setup
       msg = failure(event, msg: "you can only `.count` #{CMD_LIMIT} mappers at once.")
     else
       mappers = tokens.map {|t| Mapper.new(username: t)}.reject {|m| m.error}
-      if !mappers.empty?
+      if mappers.empty?
+        msg = failure(event)
+      else
         usernames = mappers.map {|m| m.username}
         ids = mappers.map {|m| m.id}
         ds = DB[:mappers].where(:mapper_id => ids).natural_join(:subscriptions).group_and_count(:mapper_name)
         if ds.empty?
           sub_counts = usernames.map {|u| [u, 0]}.to_h
         else
+          # What in the world does 'r' stand for?
           sub_counts = ds.map {|r| [r[:mapper_name], r[:count]]}.to_h
         end
         msg = format_counts(sub_counts)
-      else
-        msg = failure(event)
       end
     end
 

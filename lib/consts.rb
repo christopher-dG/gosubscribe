@@ -22,6 +22,6 @@ CHANNEL = TEST ? 'testing' : 'subscriptions'
 
 DB = Sequel.postgres(DB_NAME, :host => 'localhost', :user => db_user, :password => db_pass)
 DB[:mappers].prepare(:insert, :insert_mapper, :mapper_name => :$name, :mapper_id => :$id)
-DB[:users].prepare(:insert, :insert_user, :user_disc => :$disc, :user_id => :$id, :user_name => :$name)
+DB[:users].prepare(:insert, :insert_user, :user_id => :$id, :user_disc => :$disc, :user_name => :$name)
 DB[:maps].prepare(:insert, :insert_map, :mapper_id => :$mapper, :mapset_id => :$map, :status => :$status)
-DB[:subscriptions].prepare(:insert, :subscribe, :user_disc => :$disc, :mapper_id => :$mapper)
+DB[:subscriptions].prepare(:insert, :subscribe, :user_id => :$user, :mapper_id => :$mapper)

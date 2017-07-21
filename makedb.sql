@@ -3,8 +3,8 @@ CREATE DATABASE o_subscribe;
 \c o_subscribe;
 
 CREATE TABLE users(
-  user_disc INTEGER PRIMARY KEY,
-  user_id BIGINT,
+  user_id BIGINT PRIMARY KEY,
+  user_disc INTEGER,
   user_name VARCHAR(32)
 );
 
@@ -14,9 +14,9 @@ CREATE TABLE mappers(
 );
 
 CREATE TABLE subscriptions(
-  user_disc INTEGER REFERENCES users ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users ON DELETE CASCADE,
   mapper_id INTEGER REFERENCES mappers ON DELETE CASCADE,
-  PRIMARY KEY(user_disc, mapper_id)
+  PRIMARY KEY(user_id, mapper_id)
 );
 
 CREATE TABLE maps(

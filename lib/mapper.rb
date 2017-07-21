@@ -1,8 +1,7 @@
 class Mapper
-
-  attr_accessor :username
-  attr_accessor :id
-  attr_accessor :error
+  attr_reader :username
+  attr_reader :id
+  attr_reader :error
 
   # Supply at at least one of username or id.
   def initialize(username: '', id: '')
@@ -41,12 +40,6 @@ class Mapper
     ds = ds = DB[:mappers].select(:mapper_name).where(:mapper_id => @id)
     if ds.empty?
       DB.call(:insert_mapper, :id => @id, :name => @username)
-      # DB[:maps].multi_insert(
-      #   request_beatmaps.map {|m|
-      #     {:mapper_id => @id, :mapset_id => m['id'], :status => m['status']}
-      #   }
-      # )
-      # end
       request_beatmaps.each do |map|
         begin
           DB.call(:insert_map, :mapper => @id, :map => map[:id], :status => map[:status])
@@ -68,5 +61,4 @@ class Mapper
     maps = HTTParty.get(url).parsed_response
     return Set.new(maps.map {|m| {:id => m['beatmapset_id'], :status => m['approved']}})
   end
-
 end
