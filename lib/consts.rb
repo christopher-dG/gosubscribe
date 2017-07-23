@@ -17,7 +17,7 @@ DEFAULT_TOP = 3  # Default number of top mappers to display.
 TOP_MAX = 15  # Maximum number of top mappers to display.
 
 TEST = ARGV.include?('TEST') || $0 == 'irb'
-DB_NAME = TEST ? 'test' : 'o_subscribe'
+DB_NAME = 'o_subscribe'
 
 DB = Sequel.postgres(DB_NAME, :host => 'localhost', :user => db_user, :password => db_pass)
 DB[:mappers].prepare(:insert, :insert_mapper, :mapper_name => :$name, :mapper_id => :$id)

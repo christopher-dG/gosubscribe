@@ -11,68 +11,82 @@ STATUS_MAP = {
   4 => 'loved',
 }
 
-# Send messages about a new map to all subscribers of a given mapper.
-# map: Map hash from the osu! API.
-# mapper: Map creator.
-def notify(map, mapper)
-  map_str = "#{map['artist']} - #{map['title']}"
-  is_new = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).empty?
-  if !is_new
-    old_status = STATUS_MAP[DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).first[:status]]
-  end
-  status = STATUS_MAP[map['beatmap_status'].to_i]
-  if is_new
-    puts("Notifying for new map #{map_str} by #{mapper.username}")
-  else
-    puts("Notifying for updated map #{map_str} by #{mapper.username}: #{old_status} → #{status}")
-  end
-  ds = DB[:users].natural_join(:subscriptions).where(:mapper_id => mapper.id)
-  ds.each do |sub|
-    username = sub[:user_name]
-    disc = sub[:user_disc]
-    user = User.new(sub).to_discord_user
-    begin
-      if is_new
-        user.pm("New map by #{mapper.username}: #{map_str}\nhttps://osu.ppy.sh/s/#{map['beatmapset_id']}")
-      else
-        user.pm("#{map_str} by #{mapper.username} has been updated: #{old_status} → #{status}\nhttps://osu.ppy.sh/s/#{map['beatmapset_id']}")
+exit if __FILE__ != $0
+
+today = Date.today.to_s
+puts("DB: #{DB_NAME}")
+puts(today)
+BOT = setup
+notifications = {}  # user_id -> [map_hash]
+mapsets = []  # Mapsets we've already seen.
+
+2.times do |i|  # Look through 500 * 2 recent maps.
+  result = HTTParty.get("#{SEARCH_URL}&offset=#{i}").parsed_response
+  JSON.load(result)['beatmaps'].each do |map|
+    next if mapsets.include?(map['beatmapset_id'])
+    mapsets.push(map['beatmapset_id'])
+
+    mapper_name = map['mapper']
+    status = map['beatmap_status'].to_i
+
+    if !DB[:mappers].where(:mapper_name => mapper_name).empty?
+      mapper = Mapper.new(username: mapper_name)
+      next if mapper.error
+      ds = DB[:maps].where(
+      :mapper_id => mapper.id,
+      :mapset_id => map['beatmapset_id'],
+      )
+
+      map['old_status'] = !ds.empty? ? ds.first[:status] : nil
+      if ds.empty? || status != map['old_status']  # Map is new or updated.
+        ds = DB[:users].natural_join(:subscriptions).where(:mapper_id => mapper.id)
+        # Add the map to the notifications to be sent out.
+        ds.each do |sub|
+          if notifications.key?(sub[:user_id])
+            notifications[sub[:user_id]].push(map)
+          else
+            notifications[sub[:user_id]] = [map]
+          end
+        end
       end
-    rescue  # User probably doesn't allow PMs from non-friends.
-      puts("Sending to #{username}##{disc} failed.")
-    else
-      puts("Sent message to #{username}##{disc}")
+
+      # Update the DB with the new or updated map.
+      if ds.empty?
+        DB[:maps].insert(
+        :mapper_id => mapper.id,
+        :mapset_id => map['beatmapset_id'],
+        :status => map['beatmap_status'],
+        )
+      else
+        DB[:maps].where(
+        :mapper_id => mapper.id,
+        :mapset_id => map['beatmapset_id'],
+        ).update(:status => status)
+      end
     end
   end
 end
 
-if __FILE__ == $0
-  puts("DB: #{DB_NAME}")
-  puts("channel: #{CHANNEL}")
-  BOT = setup
-  mapsets = []  # Mapsets we've already seen.
-  2.times do |i|
-    result = HTTParty.get("#{SEARCH_URL}&offset=#{i}").parsed_response
-    if result.start_with?('Server error')
-      puts(result)
-      exit
+# Send a message to each user.
+notifications.each do |user_id, maps|
+  user = User.new(DB[:users].where(:user_id => user_id).first).to_discord_user
+  msg = "Map updates for #{today}:\n"
+  maps.each do |map|
+    url = "https://osu.ppy.sh/s/#{map['beatmapset_id']}"
+    map_str = "#{map['artist']} - #{map['title']} by #{map['mapper']} (#{url})"
+    if map['old_status'].nil?
+      msg += "New: #{map_str}"
+    else
+      old = STATUS_MAP[map['old_status']]
+      cur = STATUS_MAP[map['beatmap_status']]
+      msg += "#{old} → #{cur}: #{map_str}"
     end
-    JSON.load(result)['beatmaps'].each do |map|
-      mapper_name = map['mapper']
-      status = map['beatmap_status'].to_i
-      next if mapsets.include?(map['beatmapset_id'])
-      mapsets.push(map['beatmapset_id'])
-      if !DB[:mappers].where(:mapper_name => mapper_name).empty?
-        mapper = Mapper.new(username: mapper_name)
-        ds = DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'])
-        if ds.empty? || ds.first[:status] != status
-          notify(map, mapper)
-          if ds.empty?
-            DB[:maps].insert(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id'], :status => map['beatmap_status'])
-          else
-            DB[:maps].where(:mapper_id => mapper.id, :mapset_id => map['beatmapset_id']).update(:status => status)
-          end
-        end
-      end
-    end
+    msg += "\n"
+  end
+  begin
+    user.pm(msg)
+    puts("Sent message to #{user.username}##{user.discriminator}.")
+  rescue
+    puts("Sending message to #{user.username}##{user.discriminator} failed.")
   end
 end
