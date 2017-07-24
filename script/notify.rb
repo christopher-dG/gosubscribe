@@ -1,5 +1,5 @@
 # coding: utf-8
-require_relative 'o!subscribe'
+require_relative '../lib/o!subscribe'
 
 STATUS_MAP = {
   -2 => 'graveyard',
@@ -32,16 +32,17 @@ mapsets = []  # Mapsets we've already seen.
     if !DB[:mappers].where(:mapper_name => mapper_name).empty?
       mapper = Mapper.new(username: mapper_name)
       next if mapper.error
+
       ds = DB[:maps].where(
-      :mapper_id => mapper.id,
-      :mapset_id => map['beatmapset_id'],
+        :mapper_id => mapper.id,
+        :mapset_id => map['beatmapset_id'],
       )
 
       map['old_status'] = !ds.empty? ? ds.first[:status] : nil
       if ds.empty? || status != map['old_status']  # Map is new or updated.
-        ds = DB[:users].natural_join(:subscriptions).where(:mapper_id => mapper.id)
+        subs = DB[:users].natural_join(:subscriptions).where(:mapper_id => mapper.id)
         # Add the map to the notifications to be sent out.
-        ds.each do |sub|
+        subs.each do |sub|
           if notifications.key?(sub[:user_id])
             notifications[sub[:user_id]].push(map)
           else
@@ -52,15 +53,17 @@ mapsets = []  # Mapsets we've already seen.
 
       # Update the DB with the new or updated map.
       if ds.empty?
+        puts("Adding #{map['artist']} - #{map['title']} by #{map['mapper']} to DB")
         DB[:maps].insert(
-        :mapper_id => mapper.id,
-        :mapset_id => map['beatmapset_id'],
-        :status => map['beatmap_status'],
+          :mapper_id => mapper.id,
+          :mapset_id => map['beatmapset_id'],
+          :status => map['beatmap_status'],
         )
-      else
+      elsif status != map['old_status']
+        puts("Updating  #{map['artist']} - #{map['title']} by #{map['mapper']}")
         DB[:maps].where(
-        :mapper_id => mapper.id,
-        :mapset_id => map['beatmapset_id'],
+          :mapper_id => mapper.id,
+          :mapset_id => map['beatmapset_id'],
         ).update(:status => status)
       end
     end
