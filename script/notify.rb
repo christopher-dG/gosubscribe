@@ -1,5 +1,5 @@
 # coding: utf-8
-require_relative '../lib/o!subscribe'
+require_relative '../lib/bot'
 
 STATUS_MAP = {
   -2 => 'graveyard',
