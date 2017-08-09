@@ -53,14 +53,14 @@ mapsets = []  # Mapsets we've already seen.
 
       # Update the DB with the new or updated map.
       if ds.empty?
-        puts("Adding #{map['artist']} - #{map['title']} by #{map['mapper']} to DB")
+        puts("Adding #{map['artist']} - #{map['title']} by #{map['mapper']}")
         DB[:maps].insert(
           :mapper_id => mapper.id,
           :mapset_id => map['beatmapset_id'],
           :status => map['beatmap_status'],
         )
       elsif status != map['old_status']
-        puts("Updating  #{map['artist']} - #{map['title']} by #{map['mapper']}")
+        puts("Updating #{map['artist']} - #{map['title']} by #{map['mapper']}")
         DB[:maps].where(
           :mapper_id => mapper.id,
           :mapset_id => map['beatmapset_id'],

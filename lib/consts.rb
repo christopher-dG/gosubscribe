@@ -9,6 +9,7 @@ SEARCH_KEY = config['search_key']
 
 OSU_URL = 'https://osu.ppy.sh/api'
 SEARCH_URL = "https://osusearch.com/api/search?key=#{SEARCH_KEY}&count=500"
+SERVER_INVITE = "https://discord.gg/qaUhTKJ"
 
 CHAR_LIMIT = 2000  # Discord message character limit.
 TOTAL_SUB_LIMIT = 300  # Maximum subscriptions.

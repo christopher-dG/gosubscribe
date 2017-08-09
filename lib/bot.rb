@@ -19,7 +19,7 @@ def escape(s) s.gsub('_', '\_') end
 
 # Respond with an error message.
 def failure(event, msg: 'something went wrong.')
- return "Sorry #{event.user.mention}, #{msg}"
+  return "Sorry #{event.user.mention}, #{msg}"
 end
 
 # Create a fenced-code table of mappers and their sub counts.
@@ -101,6 +101,16 @@ def setup
     prefix: '.',
   )
   bot.bucket(:cmd, delay: 1.5)  # Rate limiter.
+
+  bot.command(
+    :server,
+    bucket: :cmd,
+    rate_limit_message: 'Wait %time% seconds.',
+    description: 'Link to the support server.',
+    usage: '.server',
+  ) do 
+    SERVER_INVITE
+  end
 
   bot.command(
     :sub,
