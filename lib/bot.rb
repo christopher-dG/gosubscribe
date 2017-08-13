@@ -108,7 +108,7 @@ def setup
     rate_limit_message: 'Wait %time% seconds.',
     description: 'Link to the support server.',
     usage: '.server',
-  ) do 
+  ) do
     SERVER_INVITE
   end
 
@@ -243,5 +243,13 @@ if __FILE__ == $0
   puts(Time.now)
   puts("DB: #{DB_NAME}")
   BOT = setup
-  BOT.run
+  loop do
+    begin
+      BOT.run
+    rescue => e
+      puts("========== #{Time.now}: #{e}")
+      puts("Backtrace:")
+      puts(e.backtrace)
+    end
+  end
 end

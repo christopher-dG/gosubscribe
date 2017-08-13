@@ -14,7 +14,7 @@ CREATE TABLE mappers(
 );
 
 CREATE TABLE subscriptions(
-  user_id INTEGER REFERENCES users ON DELETE CASCADE,
+  user_id BIGINT REFERENCES users ON DELETE CASCADE,
   mapper_id INTEGER REFERENCES mappers ON DELETE CASCADE,
   PRIMARY KEY(user_id, mapper_id)
 );

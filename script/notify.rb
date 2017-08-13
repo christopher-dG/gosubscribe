@@ -14,7 +14,6 @@ STATUS_MAP = {
 exit if __FILE__ != $0
 
 today = Date.today.to_s
-puts("DB: #{DB_NAME}")
 puts(today)
 BOT = setup
 notifications = {}  # user_id -> [map_hash]
@@ -75,7 +74,7 @@ notifications.each do |user_id, maps|
   user = User.new(DB[:users].where(:user_id => user_id).first).to_discord_user
   msg = "Map updates for #{today}:\n"
   maps.each do |map|
-    url = "https://osu.ppy.sh/s/#{map['beatmapset_id']}"
+    url = "#{OSU_URL}/s/#{map['beatmapset_id']}"
     map_str = "#{map['artist']} - #{map['title']} by #{map['mapper']} (#{url})"
     if map['old_status'].nil?
       msg += "New: #{map_str}"

@@ -11,12 +11,12 @@ class Mapper
         @username = username
       elsif !id.to_s.empty?
         @id = id.to_s
-        url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{@id}&type=id"
+        url = "#{OSU_URL}/api/get_user?k=#{OSU_KEY}&u=#{@id}&type=id"
         response = HTTParty.get(url).parsed_response[0]
         raise if !response.key?('username')
         @username = HTTParty.get(url).parsed_response[0]['username']
       elsif !username.empty?
-        url = "#{OSU_URL}/get_user?k=#{OSU_KEY}&u=#{username}&type=string"
+        url = "#{OSU_URL}/api/get_user?k=#{OSU_KEY}&u=#{username}&type=string"
         response = HTTParty.get(url).parsed_response[0]
         raise if !response.key?('user_id') || !response.key?('username')
         @id = response['user_id']
@@ -57,7 +57,7 @@ class Mapper
   # Get a list of all the mapper's beatmaps. Returns a list of hashes.
   def request_beatmaps
     # Todo: Make sure there are no duplicates here.
-    url = "#{OSU_URL}/get_beatmaps?k=#{OSU_KEY}&u=#{@id}&type=id"
+    url = "#{OSU_URL}/api/get_beatmaps?k=#{OSU_KEY}&u=#{@id}&type=id"
     maps = HTTParty.get(url).parsed_response
     return Set.new(maps.map {|m| {:id => m['beatmapset_id'], :status => m['approved']}})
   end
