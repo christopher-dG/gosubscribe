@@ -4,6 +4,7 @@ TOKEN = config['bot_token']
 CLIENT_ID = config['client_id']
 OSU_KEY = config['osu_key']
 SEARCH_KEY = config['search_key']
+LOG_CHANNEL = config['log_channel']
 
 OSU_URL = 'https://osu.ppy.sh'
 SEARCH_URL = "https://osusearch.com/api/search?key=#{SEARCH_KEY}&count=500"

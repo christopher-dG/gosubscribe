@@ -11,17 +11,26 @@ STATUS_MAP = {
   4 => 'loved',
 }
 
+def log(msg) puts(msg); BOT.send_message(LOG_CHANNEL, msg) end
+
 exit if __FILE__ != $0
 
-today = Date.today.to_s
-puts(today)
 BOT = setup
+today = Date.today.to_s
+log("Starting run for #{today}...")
 notifications = {}  # user_id -> [map_hash]
 mapsets = []  # Mapsets we've already seen.
 
 2.times do |i|  # Look through 500 * 2 recent maps.
   result = HTTParty.get("#{SEARCH_URL}&offset=#{i}").parsed_response
-  JSON.load(result)['beatmaps'].each do |map|
+  begin
+    json = JSON.load(result)['beatmaps']
+  rescue => e
+    log("Getting data from osusearch.com failed: #{e.message}")
+    next
+  end
+
+  json.each do |map|
     next if mapsets.include?(map['beatmapset_id'])
     mapsets.push(map['beatmapset_id'])
 
@@ -52,14 +61,14 @@ mapsets = []  # Mapsets we've already seen.
 
       # Update the DB with the new or updated map.
       if ds.empty?
-        puts("Adding #{map['artist']} - #{map['title']} by #{map['mapper']}")
+        log("New map: #{map['artist']} - #{map['title']} by #{map['mapper']}")
         DB[:maps].insert(
           :mapper_id => mapper.id,
           :mapset_id => map['beatmapset_id'],
           :status => map['beatmap_status'],
         )
       elsif status != map['old_status']
-        puts("Updating #{map['artist']} - #{map['title']} by #{map['mapper']}")
+        log("Updated map: #{map['artist']} - #{map['title']} by #{map['mapper']}")
         DB[:maps].where(
           :mapper_id => mapper.id,
           :mapset_id => map['beatmapset_id'],
@@ -87,8 +96,11 @@ notifications.each do |user_id, maps|
   end
   begin
     user.pm(msg)
-    puts("Sent message to #{user.username}##{user.discriminator}.")
-  rescue
-    puts("Sending message to #{user.username}##{user.discriminator} failed.")
+    log("Sent message to #{user.username}##{user.discriminator}.")
+  rescue => e
+    log("Sending message to <@#{user.id}> failed: '#{e.message}'")
   end
 end
+
+log("Finished run for #{today}.")
+
