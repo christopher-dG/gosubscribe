@@ -3,14 +3,12 @@ package gosubscribe
 import "database/sql"
 
 type User struct {
-	ID              uint
-	DiscordID       sql.NullInt64 `gorm:"unique;index"`
-	DiscordDisc     sql.NullInt64
-	DiscordUsername sql.NullString
-	OsuID           sql.NullInt64  `gorm:"unique"`
-	OsuUsername     sql.NullString `gorm:"unique;index"`
-	NotifyAll       bool           `sql:"default:false"`
-	Secret          sql.NullString
+	ID          uint
+	DiscordID   sql.NullInt64  `gorm:"unique;index"`
+	OsuUsername sql.NullString `gorm:"unique;index"`
+	Secret      string         `gorm:"unique"`
+	NotifyAll   bool
+	MessageOsu  bool
 }
 
 type Mapper struct {
