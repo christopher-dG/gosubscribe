@@ -10,7 +10,6 @@ type User struct {
 	OsuID           sql.NullInt64  `gorm:"unique"`
 	OsuUsername     sql.NullString `gorm:"unique;index"`
 	NotifyAll       bool           `sql:"default:false"`
-	Subscriptions   []Mapper       `gorm:"many2many:subscriptions"`
 }
 
 type Mapper struct {
@@ -21,4 +20,9 @@ type Mapper struct {
 type Map struct {
 	ID       uint
 	MapperID uint // HOW DO FOREIGN KEYS WORK
+}
+
+type Subscription struct {
+	UserID   uint `gorm:"primary_key"`
+	MapperID uint `gorm:"primary_key"`
 }
