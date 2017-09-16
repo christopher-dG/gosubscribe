@@ -10,6 +10,7 @@ type User struct {
 	OsuID           sql.NullInt64  `gorm:"unique"`
 	OsuUsername     sql.NullString `gorm:"unique;index"`
 	NotifyAll       bool           `sql:"default:false"`
+	Secret          sql.NullString
 }
 
 type Mapper struct {

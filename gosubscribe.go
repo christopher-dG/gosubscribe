@@ -9,14 +9,14 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var DB *gorm.DB
+var DB *gorm.DB // Connect must be called before using this.
 
 // Connect connects to a given PostreSQL database.
 func Connect(host, user, dbname, password string) {
 	db, err := gorm.Open(
 		"postgres",
 		fmt.Sprintf(
-			"host=%s user=%s dbname=%s password=%s sslmode=disable",
+			"host=%s user=%s dbname=%s sslmode=disable password=%s",
 			host, user, dbname, password,
 		),
 	)
