@@ -2,6 +2,8 @@ package gosubscribe
 
 import "database/sql"
 
+// TODO: Proper foreign keys.
+
 type User struct {
 	ID          uint
 	DiscordID   sql.NullInt64  `gorm:"unique;index"`
@@ -12,13 +14,14 @@ type User struct {
 }
 
 type Mapper struct {
-	ID       uint
-	Username string `gorm:"not null"`
+	ID       uint   `json:"user_id,string"`
+	Username string `gorm:"not null" json:"username"`
 }
 
 type Map struct {
-	ID       uint
-	MapperID uint // HOW DO FOREIGN KEYS WORK
+	ID       uint `json:"beatmapset_id,string"`
+	MapperID uint `json:"-"` // Need to fill this field manually.
+	Status   int  `json:"approved,string"`
 }
 
 type Subscription struct {

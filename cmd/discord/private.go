@@ -15,7 +15,7 @@ func handlePrivate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	var msg string
-	switch strings.Split(m.Message.Content, " ")[0] {
+	switch strings.Split(m.Content, " ")[0] {
 	case ".init":
 		msg = initUser(m)
 	case ".register":
@@ -32,7 +32,7 @@ func handlePrivate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // privateHelp returns a help message for authentication.
 func privateHelp(m *discordgo.MessageCreate) string {
-	tokens := strings.Split(m.Message.Content, " ")
+	tokens := strings.Split(m.Content, " ")
 	if len(tokens) == 1 {
 		return "Commands: `.init`, `.register`, `.secret`.\nTry `.help auth` for details."
 	}
@@ -55,7 +55,7 @@ func initUser(m *discordgo.MessageCreate) string {
 
 // registerUser registers a user's Discord ID with their existing account.
 func registerUser(m *discordgo.MessageCreate) string {
-	tokens := strings.Split(m.Message.Content, " ")
+	tokens := strings.Split(m.Content, " ")
 	if len(tokens) == 1 {
 		return "You need to supply your secret."
 	}

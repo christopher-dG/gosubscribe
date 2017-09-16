@@ -20,6 +20,7 @@ var (
 )
 
 func main() {
+
 	gosubscribe.Connect(
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_USER"),
@@ -78,7 +79,7 @@ func getUser(dUser *discordgo.User) (gosubscribe.User, error) {
 	)
 	gosubscribe.DB.Where("discord_id = ?", dUser.ID).Find(&user)
 	if user.ID == 0 {
-		return user, errors.New("You aren't initialized. Try `.help auth`.")
+		return user, errors.New(dUser.Mention() + ", you aren't initialized.")
 	}
 	return user, err
 }
