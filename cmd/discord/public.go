@@ -31,7 +31,7 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case ".top":
 		msg = top(m)
 	case ".help":
-		msg = publicHelp(m)
+		msg = gosubscribe.HelpURL
 	}
 
 	s.ChannelMessageSend(m.ChannelID, msg)
@@ -236,11 +236,6 @@ func formatCounts(counts map[gosubscribe.Mapper]uint) string {
 	}
 
 	return s + "```"
-}
-
-// publicHelp dislays a help message for commands.
-func publicHelp(m *discordgo.MessageCreate) string {
-	return ""
 }
 
 // hasMapper determines whether or not the map contains a mapper key with the given name.

@@ -8,7 +8,12 @@
 To get started, join the o!subscribe Discord server or invite the bot to your
 own with the buttons above.
 
+
+
 ## Command Reference
+
+If you're brand new, you may want to skip ahead to
+[authentication](authentication) for now.
 
 | Command | Argument(s) | Description | Example |
 | :-: | :-: | :-: | :-: |
@@ -36,6 +41,8 @@ registration. If you're a brand new user, you'll generally only need `.init`.
 commands won't work in public channels.
 
 ***
+
+**osu! in-game chatbot coming soon™**
 
 *gosubscribe is partially powered by [osu!search](https://osusearch.com).*
 

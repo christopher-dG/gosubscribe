@@ -52,7 +52,6 @@ func Top(n int) map[Mapper]uint {
 	var subs []Subscription
 	// TODO: Figure out how to properly build this query.
 	DB.Raw(fmt.Sprintf("SELECT mapper_id, COUNT(*) FROM subscriptions GROUP BY mapper_id ORDER BY COUNT DESC LIMIT %d", n)).Find(&subs)
-	fmt.Println(subs)
 	for _, sub := range subs {
 		var mapper Mapper
 		DB.Where("id = ?", sub.MapperID).First(&mapper)

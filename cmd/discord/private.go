@@ -23,24 +23,11 @@ func handlePrivate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case ".secret":
 		msg = getSecret(m)
 	case ".help":
-		msg = privateHelp(m)
+		msg = gosubscribe.HelpURL
 	default:
 		msg = "I don't recognize that command, try `.help`."
 	}
 	s.ChannelMessageSend(m.ChannelID, msg)
-}
-
-// privateHelp returns a help message for authentication.
-func privateHelp(m *discordgo.MessageCreate) string {
-	tokens := strings.Split(m.Content, " ")
-	if len(tokens) == 1 {
-		return "Commands: `.init`, `.register`, `.secret`.\nTry `.help auth` for details."
-	}
-	if tokens[1] == "auth" {
-		return authHelp
-	} else {
-		return "Unrecognized argument; try `.help`."
-	}
 }
 
 // initUser adds a new user.

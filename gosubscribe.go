@@ -10,6 +10,7 @@ import (
 )
 
 var DB *gorm.DB // Connect must be called before using this.
+var HelpURL string = "https://github.com/christopher-dG/gosubscribe#command-reference"
 
 // Connect connects to a given PostreSQL database.
 func Connect(host, user, dbname, password string) {
