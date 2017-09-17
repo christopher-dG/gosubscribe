@@ -26,7 +26,8 @@ func (user *User) ListSubscribed() []Mapper {
 	var mappers []Mapper
 	DB.Table("subscriptions").Joins(
 		"inner join mappers on subscriptions.mapper_id = mappers.id",
-	).Select("mappers.id, mappers.username").Find(&mappers)
+	).Select("mappers.id, mappers.username").Where("subscriptions.user_id = ?", user.ID).
+		Find(&mappers)
 	return mappers
 }
 

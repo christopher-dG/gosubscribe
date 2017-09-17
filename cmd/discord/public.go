@@ -164,11 +164,11 @@ func top(m *discordgo.MessageCreate) string {
 	if len(tokens) == 1 {
 		n = 5
 	} else {
-		i, err := strconv.ParseInt(tokens[1], 10, 64)
-		if err != nil || n <= 0 {
+		parsed, err := strconv.ParseInt(tokens[1], 10, 64)
+		if err != nil || parsed <= 0 {
 			n = 5
 		} else {
-			n = int(math.Min(float64(i), 25))
+			n = int(math.Min(float64(parsed), 25))
 		}
 	}
 	return formatCounts(gosubscribe.Top(n))
