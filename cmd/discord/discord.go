@@ -20,7 +20,6 @@ var (
 )
 
 func main() {
-
 	gosubscribe.Connect(
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_USER"),
@@ -33,7 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	discord.AddHandler(messageCreate)
+	discord.AddHandler(handleMessage)
 
 	err = discord.Open()
 	if err != nil {
@@ -50,8 +49,8 @@ func main() {
 	}
 }
 
-// messageCreate handles incoming messages.
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+// handleMessage handles incoming messages.
+func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}

@@ -25,7 +25,7 @@ func handlePrivate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case ".help":
 		msg = gosubscribe.HelpURL
 	default:
-		msg = "I don't recognize that command, try `.help`."
+		msg = "Unrecognized command, maybe it belongs in a public channel. Try `.help`."
 	}
 	s.ChannelMessageSend(m.ChannelID, msg)
 }
