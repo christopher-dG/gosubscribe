@@ -13,7 +13,7 @@ own with the buttons above.
 ## Command Reference
 
 If you're brand new, you may want to skip ahead to
-[authentication](authentication) for now.
+[authentication](#authentication) for now.
 
 | Command | Argument(s) | Description | Example |
 | :-: | :-: | :-: | :-: |
