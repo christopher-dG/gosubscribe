@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,6 +28,7 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case ".count":
 		msg = count(m)
 	case ".top":
+		msg = top(m)
 	case ".help":
 		msg = publicHelp(m)
 	}
@@ -145,6 +147,23 @@ func list(m *discordgo.MessageCreate) string {
 	}
 }
 
+// top displays the subscriber counts  for the mappers with the most subscribers.
+func top(m *discordgo.MessageCreate) string {
+	tokens := strings.SplitN(m.Content, " ", 2)
+	var n int
+	if len(tokens) == 1 {
+		n = 5
+	} else {
+		i, err := strconv.ParseInt(tokens[1], 10, 64)
+		if err != nil {
+			n = 5
+		} else {
+			n = int(i)
+		}
+	}
+	return formatCounts(gosubscribe.Top(n))
+}
+
 // count displays the subscriber counts for the given mappers.
 func count(m *discordgo.MessageCreate) string {
 	tokens := strings.SplitN(m.Content, " ", 2)
@@ -179,25 +198,42 @@ func count(m *discordgo.MessageCreate) string {
 	return formatCounts(counts)
 }
 
-// formatCounts converts a mapper -> subscriber count mapping to a fenced code block.
+// formatCounts converts a mapper -> subscriber count mapping to a fenced code block,
+// ordering the counts in descending order.
 func formatCounts(counts map[gosubscribe.Mapper]uint) string {
-	// TODO: Sort in descending order.
-	maxWidth := 0
+	// First, get the maximum width a mapper's name for formatting.
+	maxWidth := -1
 	for mapper, _ := range counts {
 		if len(mapper.Username) > maxWidth {
 			maxWidth = len(mapper.Username)
 		}
 	}
-	maxWidth += 5
+	maxWidth += 5 // Some padding.
+
 	s := "```\n"
-	for mapper, count := range counts {
+
+	// Now add each line to the output, ordered by count (descending).
+	for len(counts) > 0 {
+		maxSubs := uint(0)
+		var maxSubsMapper gosubscribe.Mapper
+		for mapper, count := range counts {
+			if count >= maxSubs {
+				maxSubs = count
+				maxSubsMapper = mapper
+			}
+		}
+		padding := strings.Repeat(" ", maxWidth-len(maxSubsMapper.Username))
 		var plural string
-		if count != 1 {
+		if maxSubs != 1 {
 			plural = "s"
 		}
-		padding := strings.Repeat(" ", maxWidth-len(mapper.Username))
-		s += fmt.Sprintf("%s%s%d subscriber%s\n", mapper.Username, padding, count, plural)
+		s += fmt.Sprintf(
+			"%s%s%d subscriber%s\n",
+			maxSubsMapper.Username, padding, maxSubs, plural,
+		)
+		delete(counts, maxSubsMapper)
 	}
+
 	return s + "```"
 }
 

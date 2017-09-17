@@ -1,5 +1,7 @@
 package gosubscribe
 
+import "fmt"
+
 // Subscribe subscribes a user to a list of mappers.
 func (user *User) Subscribe(mappers []Mapper) {
 	for _, mapper := range mappers {
@@ -39,6 +41,21 @@ func (mapper *Mapper) Count() uint {
 func Count(mappers []Mapper) map[Mapper]uint {
 	counts := make(map[Mapper]uint)
 	for _, mapper := range mappers {
+		counts[mapper] = mapper.Count()
+	}
+	return counts
+}
+
+// Top gets the n mappers with the most subscribers and their subscription counts.
+func Top(n int) map[Mapper]uint {
+	counts := make(map[Mapper]uint)
+	var subs []Subscription
+	// TODO: Figure out how to properly build this query.
+	DB.Raw(fmt.Sprintf("SELECT mapper_id, COUNT(*) FROM subscriptions GROUP BY mapper_id ORDER BY COUNT DESC LIMIT %d", n)).Find(&subs)
+	fmt.Println(subs)
+	for _, sub := range subs {
+		var mapper Mapper
+		DB.Where("id = ?", sub.MapperID).First(&mapper)
 		counts[mapper] = mapper.Count()
 	}
 	return counts
