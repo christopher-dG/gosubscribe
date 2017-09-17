@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 
@@ -155,10 +156,10 @@ func top(m *discordgo.MessageCreate) string {
 		n = 5
 	} else {
 		i, err := strconv.ParseInt(tokens[1], 10, 64)
-		if err != nil {
+		if err != nil || n <= 0 {
 			n = 5
 		} else {
-			n = int(i)
+			n = int(math.Min(float64(i), 25))
 		}
 	}
 	return formatCounts(gosubscribe.Top(n))

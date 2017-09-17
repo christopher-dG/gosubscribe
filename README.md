@@ -5,32 +5,35 @@
 
 **Subscribe to osu! users to be notified about their new/updated maps.**
 
-## Authentication
-
-### Secrets
-
-Due to the eventual goal of making this service available on both
-Discord and osu! IRC, some measures need to be taken to prove that you own
-the accounts on each platform. When you register with the bot for the first
-time on any platform, you'll receive a unique secret which is then used to
-register from any other platform.
-
-### Discord
-
-Authentication on Discord works by PMing the bot. If you have not
-registered on any other platform, then enter `.init` to receive your secret.
-Your Discord ID will also be automatically registered. If you have already
-received a secret via another platform (i.e. osu! IRC), then intead use
-`.register [your_secret]`. You can retrieve your secret at any time with
-the `.secret` command.
-
-### osu! IRC (in-game chat)
-
-`TODO`
+To get started, join the o!subscribe Discord server or invite the bot to your
+own with the buttons above.
 
 ## Command Reference
 
-`TODO`
+| Command | Argument(s) | Description | Example |
+| :-: | :-: | :-: | :-: |
+| `.sub` | `mapper, mapper2`, ... | Subscribe to given mappers. | `.sub pishifat, monstrata` |
+| `.unsub` | `username1, username2`, ... | Unsubscribe from given mappers. | `.unsub pishifat, monstrata` |
+| `.list` |  | Display your current subscriptions. | `.list` |
+| `.count` | `mapper1, mapper2, ...` | Display subscriber counts for given mappers. | `.count pishifat, monstrata` |
+| `.top` | `[n=5]` | Display subscriber counts for the top `n` mappers. | `.top 10` |
+| `.purge` | | Unsubscribe from all mappers. | `.purge` |
+| `.help` | | Link to this reference. | `.help` |
+
+### Authentication
+
+Before you can start using the commands above, you need to complete a quick
+registration. If you're a brand new user, you'll generally only need `.init`.
+
+
+| Command | Argument(s) | Description | Example |
+| :-: | :-: | :-: | :-: |
+| `.init` | | Initialize as a new user. You should not use this command more than once, even if you're on a different platform than the one you first initialized on. | `.init` |
+| `.secret` | | Get your unique secret, required for registering on other platforms. | `.secret` |
+| `.register` | `secret` | Register on a new platform, provided that you've initialized  elsewhere. | `.register 1234567890` |
+
+**Note**: On Discord, authentication is done via PM with the bot; these
+commands won't work in public channels.
 
 ***
 
