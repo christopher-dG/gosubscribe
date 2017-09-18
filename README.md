@@ -17,8 +17,8 @@ If you're brand new, you may want to skip ahead to
 
 | Command | Argument(s) | Description | Example |
 | :-: | :-: | :-: | :-: |
-| `.sub` | `mapper, mapper2`, ... | Subscribe to given mappers. | `.sub pishifat, monstrata` |
-| `.unsub` | `username1, username2`, ... | Unsubscribe from given mappers. | `.unsub pishifat, monstrata` |
+| `.sub` | `mapper, mapper2, ...` | Subscribe to given mappers. | `.sub pishifat, monstrata` |
+| `.unsub` | `username1, username2, ...` | Unsubscribe from given mappers. | `.unsub pishifat, monstrata` |
 | `.list` |  | Display your current subscriptions. | `.list` |
 | `.count` | `mapper1, mapper2, ...` | Display subscriber counts for given mappers. | `.count pishifat, monstrata` |
 | `.top` | `[n=5]` | Display subscriber counts for the top `n` mappers. | `.top 10` |
