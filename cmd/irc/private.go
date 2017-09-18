@@ -9,55 +9,43 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/christopher-dG/gosubscribe"
+	irc "github.com/thoj/go-ircevent"
 )
 
-// handlePublic responds to messages sent via public channels.
-func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if test && m.ChannelID != testChannel {
+func handlePrivate(e *irc.Event) {
+	tokens := strings.SplitN(e.Message(), " ", 2)
+	var msg string
+	switch tokens[0] {
+	case ".sub":
+		msg = subscribe(e)
+	case ".unsub":
+	case ".list":
+	case ".purge":
+	case ".count":
+	case ".top":
+	case ".init":
+		msg = initUser(e)
+	case ".register":
+		msg = registerUser(e)
+	case ".secret":
+		msg = getSecret(e)
+	case ".help":
+		msg = gosubscribe.HelpURL
+	default:
 		return
 	}
-	var msg string
-	switch strings.Split(m.Message.Content, " ")[0] {
-	case ".sub":
-		msg = subscribe(m)
-	case ".unsub":
-		msg = unsubscribe(m)
-	case ".list":
-		msg = list(m)
-	case ".purge":
-		msg = purge(m)
-	case ".count":
-		msg = count(m)
-	case ".top":
-		msg = top(m)
-	case ".init":
-		fallthrough
-	case ".register":
-		fallthrough
-	case ".secret":
-		msg = fmt.Sprintf(
-			"%s, this command belongs in a private message.",
-			m.Author.Mention(),
-		)
-	case ".help":
-		msg = fmt.Sprintf("<%s>", gosubscribe.HelpURL)
-	}
-
-	s.ChannelMessageSend(m.ChannelID, msg)
+	bot.Privmsg(e.Nick, msg)
 }
 
 // subscribe subscribes the user to the given mappers.
-func subscribe(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
+func subscribe(e *irc.Event) string {
+	user, err := getUser(e.Nick)
 	if err != nil {
 		return err.Error()
 	}
-	tokens := strings.SplitN(m.Content, " ", 2)
+	tokens := strings.SplitN(e.Message(), " ", 2)
 	if len(tokens) == 1 {
-		return fmt.Sprintf(
-			"%s, you need to supply at least one mapper.",
-			m.Author.Mention(),
-		)
+		return "You need to supply at least one mapper."
 	}
 
 	names := strings.Split(tokens[1], ",")
@@ -73,8 +61,8 @@ func subscribe(m *discordgo.MessageCreate) string {
 	}
 
 	if len(mappers) == 0 {
-		log.Printf(".sub: couldn't find any mappers (from %s)\n", m.Content)
-		return fmt.Sprintf("%s, no mappers were found.", m.Author.Mention())
+		log.Printf(".sub: couldn't find any mappers (from %s)\n", e.Message())
+		return fmt.Sprintf("No mappers were found.")
 	} else {
 		user.Subscribe(mappers)
 		subscribed := []string{}
@@ -83,27 +71,21 @@ func subscribe(m *discordgo.MessageCreate) string {
 		}
 		log.Printf(
 			".sub: subscribed %d to %d/%d mapper(s) (from %s)\n",
-			user.ID, len(mappers), len(names), m.Content,
+			user.ID, len(mappers), len(names), e.Message(),
 		)
-		return fmt.Sprintf(
-			"%s subscribed to: %s.",
-			m.Author.Mention(), strings.Join(subscribed, ", "),
-		)
+		return fmt.Sprintf("You subscribed to: %s.", strings.Join(subscribed, ", "))
 	}
 }
 
 // unsubscribe unsubscribes the user from the given mappers.
-func unsubscribe(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
+func unsubscribe(e *irc.Event) string {
+	user, err := getUser(e.Nick)
 	if err != nil {
 		return err.Error()
 	}
-	tokens := strings.SplitN(m.Content, " ", 2)
+	tokens := strings.SplitN(e.Message(), " ", 2)
 	if len(tokens) == 1 {
-		return fmt.Sprintf(
-			"%s, you need to supply at least one mapper.",
-			m.Author.Mention(),
-		)
+		return "You need to supply at least one mapper."
 	}
 
 	names := strings.Split(tokens[1], ",")
@@ -120,34 +102,29 @@ func unsubscribe(m *discordgo.MessageCreate) string {
 
 	log.Printf(
 		".unsub: unsubscribed %d from %d/%d mapper(s) (from %s)\n",
-		user.ID, len(unsubscribed), len(names), m.Content,
+		user.ID, len(unsubscribed), len(names), e.Message(),
 	)
 	if len(unsubscribed) > 0 {
-		return fmt.Sprintf(
-			"%s unsubscribed from: %s",
-			m.Author.Mention(), strings.Join(unsubscribed, ", "),
-		)
+		return fmt.Sprintf("You unsubscribed from: %s", strings.Join(unsubscribed, ", "))
 	} else {
-		return fmt.Sprintf(
-			"%s, you weren't subscribed to any of those mappers.", m.Author.Mention(),
-		)
+		return "You weren't subscribed to any of those mappers."
 	}
 }
 
 // purge unsubscribes the user from all mappers.
-func purge(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
+func purge(e *irc.Event) string {
+	user, err := getUser(e.Nick)
 	if err != nil {
 		return err.Error()
 	}
 	gosubscribe.DB.Where("user_id = ?", user.ID).Delete(gosubscribe.Subscription{})
 	log.Printf(".purge: purged subscriptions for %d\n", user.ID)
-	return fmt.Sprintf("%s is no longer subscribed to any mappers.", m.Author.Mention())
+	return "You are no longer subscribed to any mappers."
 }
 
 // list displays the mappers that the user is subscribed to.
-func list(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
+func list(e *irc.Event) string {
+	user, err := getUser(e.Nick)
 	if err != nil {
 		return err.Error()
 	}
@@ -159,18 +136,15 @@ func list(m *discordgo.MessageCreate) string {
 
 	log.Printf(".list: listing %d subscription(s) for %d\n", len(names), user.ID)
 	if len(names) > 0 {
-		return fmt.Sprintf(
-			"%s is subscribed to: %s",
-			m.Author.Mention(), strings.Join(names, ", "),
-		)
+		return fmt.Sprintf("You're subscribed to: %s", strings.Join(names, ", "))
 	} else {
-		return fmt.Sprintf("%s is not subscribed to any mappers.", m.Author.Mention())
+		return "You're not subscribed to any mappers."
 	}
 }
 
 // top displays the subscriber counts  for the mappers with the most subscribers.
-func top(m *discordgo.MessageCreate) string {
-	tokens := strings.SplitN(m.Content, " ", 2)
+func top(e *irc.Event) string {
+	tokens := strings.SplitN(e.Message(), " ", 2)
 	var n int
 	if len(tokens) == 1 {
 		n = 5
@@ -182,8 +156,8 @@ func top(m *discordgo.MessageCreate) string {
 			n = int(math.Min(float64(parsed), 25))
 		}
 	}
-	log.Printf(".top: displaying top %d mappers (from %s)\n", n, m.Content)
-	return fmt.Sprintf("```%s```", gosubscribe.FormatCounts(gosubscribe.Top(n)))
+	log.Printf(".top: displaying top %d mappers (from %s)\n", n, e.Message())
+	return gosubscribe.FormatCounts(gosubscribe.Top(n))
 }
 
 // count displays the subscriber counts for the given mappers.
@@ -222,5 +196,58 @@ func count(m *discordgo.MessageCreate) string {
 		".count: displaying counts for %d mapper(s) (%d found) (from %s)\n",
 		len(counts), len(mappers), m.Content,
 	)
-	return fmt.Sprintf("```%s```", gosubscribe.FormatCounts(counts))
+	return gosubscribe.FormatCounts(counts)
+}
+
+// initUser adds a new user.
+func initUser(e *irc.Event) string {
+	user, err := getUser(e.Nick)
+	if err == nil {
+		return fmt.Sprintf("You're already initialized; your secret is %s.", user.Secret)
+	}
+	user, _ = createUser(e.Nick)
+	log.Printf(
+		".init: initialized new user (osu!): %d -> %s\n",
+		user.ID, user.OsuUsername.String,
+	)
+	return fmt.Sprintf("Initialized; your secret is `%s`.", user.Secret)
+}
+
+// registerUser registers a user's osu! username with their existing account.
+func registerUser(e *irc.Event) string {
+	tokens := strings.Split(e.Message(), " ")
+	if len(tokens) == 1 {
+		return "You need to supply your secret."
+	}
+	user, err := gosubscribe.UserFromSecret(tokens[1])
+	if err != nil {
+		return err.Error()
+	}
+
+	if user.OsuUsername.Valid && fmt.Sprint(user.OsuUsername.String) == e.Nick {
+		return "You're already registered."
+	}
+	// This also takes care of name changes.
+	user.OsuUsername.String = e.Nick
+	user.OsuUsername.Valid = true
+	gosubscribe.DB.Save(&user)
+	log.Printf(
+		".register: registered user (osu!): %d -> %s\n",
+		user.ID, user.OsuUsername.String,
+	)
+	return "Registered osu!."
+}
+
+// getSecret retrieves a user's secret.
+func getSecret(e *irc.Event) string {
+	user, err := getUser(e.Nick)
+	if err != nil {
+		return err.Error()
+	}
+	secret, err := gosubscribe.GetSecret(user)
+	if err != nil {
+		return err.Error()
+	}
+	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
+	return fmt.Sprintf("Your secret is: `%s`.", secret)
 }

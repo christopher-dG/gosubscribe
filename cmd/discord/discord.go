@@ -89,11 +89,11 @@ func createUser(dUser *discordgo.User) (gosubscribe.User, error) {
 	if err == nil {
 		return existing, errors.New("Already initialized.")
 	}
-	user := new(gosubscribe.User)
+	var user gosubscribe.User
 	id, _ := strconv.ParseInt(dUser.ID, 10, 64)
 	user.DiscordID.Int64 = id
 	user.DiscordID.Valid = true
 	user.Secret = gosubscribe.GenSecret()
 	gosubscribe.DB.Save(&user)
-	return *user, nil
+	return user, nil
 }

@@ -4,13 +4,19 @@ package gosubscribe
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var DB *gorm.DB // Connect must be called before using this.
-var HelpURL string = "<https://github.com/christopher-dG/gosubscribe#command-reference>"
+var (
+	DB      *gorm.DB // Connect must be called before using this.
+	HelpURL string   = "https://github.com/christopher-dG/gosubscribe#command-reference"
+	osuURL  string   = "https://osu.ppy.sh/api"
+	osuKey  string   = os.Getenv("OSU_API_KEY")
+)
 
 // Connect connects to a given PostreSQL database.
 func Connect(host, user, dbname, password string) {
@@ -26,4 +32,43 @@ func Connect(host, user, dbname, password string) {
 	}
 	db.AutoMigrate(&User{}, &Mapper{}, &Map{}, &Subscription{})
 	DB = db // From now on, we can access the database from anywhere via DB.
+}
+
+// formatCounts converts a mapper -> subscriber count mapping to a fenced code block,
+// ordering the counts in descending order.
+func FormatCounts(counts map[Mapper]uint) string {
+	// First, get the maximum width a mapper's name for formatting.
+	maxWidth := -1
+	for mapper, _ := range counts {
+		if len(mapper.Username) > maxWidth {
+			maxWidth = len(mapper.Username)
+		}
+	}
+	maxWidth += 5 // Some padding.
+
+	var s string
+
+	// Now add each line to the output, ordered by count (descending).
+	for len(counts) > 0 {
+		maxSubs := uint(0)
+		var maxSubsMapper Mapper
+		for mapper, count := range counts {
+			if count >= maxSubs {
+				maxSubs = count
+				maxSubsMapper = mapper
+			}
+		}
+		padding := strings.Repeat(" ", maxWidth-len(maxSubsMapper.Username))
+		var plural string
+		if maxSubs != 1 {
+			plural = "s"
+		}
+		s += fmt.Sprintf(
+			"%s%s%d subscriber%s\n",
+			maxSubsMapper.Username, padding, maxSubs, plural,
+		)
+		delete(counts, maxSubsMapper)
+	}
+
+	return s
 }

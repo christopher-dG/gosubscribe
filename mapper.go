@@ -7,13 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-)
-
-var (
-	osuURL string = "https://osu.ppy.sh/api"
-	osuKey string = os.Getenv("OSU_API_KEY")
 )
 
 func GetMapper(name string) (Mapper, error) {
@@ -75,7 +69,7 @@ func (mapper *Mapper) Insert() {
 	inserted := []Map{}
 	for _, beatmap := range maps {
 
-		if !contains(inserted, beatmap) {
+		if !hasMap(inserted, beatmap) {
 			inserted = append(inserted, beatmap)
 			beatmap.MapperID = mapper.ID
 			DB.Create(&beatmap)
@@ -115,7 +109,17 @@ func (mapper *Mapper) GetMaps() ([]Map, error) {
 	return maps, nil
 }
 
-func contains(maps []Map, key Map) bool {
+// HasMapper determines whether or not the map contains a mapper key with the given name.
+func HasMapper(mappers map[Mapper]uint, name string) bool {
+	for mapper, _ := range mappers {
+		if strings.EqualFold(mapper.Username, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasMap(maps []Map, key Map) bool {
 	for _, beatmap := range maps {
 		if beatmap.ID == key.ID {
 			return true
