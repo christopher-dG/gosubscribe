@@ -19,8 +19,7 @@ var (
 func GetMapper(name string) (Mapper, error) {
 	var mapper Mapper
 	url := fmt.Sprintf("%s/get_user?k=%s&u=%s&type=string", osuURL, osuKey, name)
-	safe := strings.Replace(url, osuKey, "[secure]", 1)
-	log.Printf("Requesting from: %s\n", safe)
+	log.Printf("requesting from: %s\n", strings.Replace(url, osuKey, "[secure]", 1))
 	resp, err := http.Get(url)
 	if err != nil {
 		return mapper, err

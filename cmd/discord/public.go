@@ -82,7 +82,7 @@ func subscribe(m *discordgo.MessageCreate) string {
 			subscribed = append(subscribed, mapper.Username)
 		}
 		log.Printf(
-			"subscribed %d to %d/%d mapper(s) (from %s)\n",
+			".sub: subscribed %d to %d/%d mapper(s) (from %s)\n",
 			user.ID, len(mappers), len(names), m.Content,
 		)
 		return fmt.Sprintf(
@@ -119,8 +119,8 @@ func unsubscribe(m *discordgo.MessageCreate) string {
 
 	}
 
-	log.Println(
-		"unsubscribed %d from %d/%d mapper(s) (from %s)\n",
+	log.Printf(
+		".unsub: unsubscribed %d from %d/%d mapper(s) (from %s)\n",
 		user.ID, len(unsubscribed), len(names), m.Content,
 	)
 	if len(unsubscribed) > 0 {
@@ -142,7 +142,7 @@ func purge(m *discordgo.MessageCreate) string {
 		return err.Error()
 	}
 	gosubscribe.DB.Where("user_id = ?", user.ID).Delete(gosubscribe.Subscription{})
-	log.Printf("purged subscriptions for %d\n", user.ID)
+	log.Printf(".purge: purged subscriptions for %d\n", user.ID)
 	return fmt.Sprintf("%s is no longer subscribed to any mappers.", m.Author.Mention())
 }
 
@@ -158,7 +158,7 @@ func list(m *discordgo.MessageCreate) string {
 		names = append(names, mapper.Username)
 	}
 
-	log.Printf("Listing %d subscription(s) for %d\n", len(names), user.ID)
+	log.Printf(".list: listing %d subscription(s) for %d\n", len(names), user.ID)
 	if len(names) > 0 {
 		return fmt.Sprintf(
 			"%s is subscribed to: %s",
@@ -183,7 +183,7 @@ func top(m *discordgo.MessageCreate) string {
 			n = int(math.Min(float64(parsed), 25))
 		}
 	}
-	log.Printf("displaying top %d mappers (from %s)\n", n, m.Content)
+	log.Printf(".top: displaying top %d mappers (from %s)\n", n, m.Content)
 	return formatCounts(gosubscribe.Top(n))
 }
 
@@ -220,7 +220,7 @@ func count(m *discordgo.MessageCreate) string {
 	}
 
 	log.Printf(
-		"displaying counts for %d mapper(s) (%d found) (from %s)\n",
+		".count: displaying counts for %d mapper(s) (%d found) (from %s)\n",
 		len(counts), len(mappers), m.Content,
 	)
 	return formatCounts(counts)

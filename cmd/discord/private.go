@@ -38,7 +38,10 @@ func initUser(m *discordgo.MessageCreate) string {
 		return fmt.Sprintf("You're already initialized; your secret is `%s`.", user.Secret)
 	}
 	user, _ = createUser(m.Author)
-	log.Printf("initialized new user: %d -> %d\n", user.ID, user.DiscordID)
+	log.Printf(
+		".init: initialized new user (Discord): %d -> %d\n",
+		user.ID, user.DiscordID.Int64,
+	)
 	return fmt.Sprintf("Initialized; your secret is `%s`.", user.Secret)
 }
 
@@ -60,7 +63,10 @@ func registerUser(m *discordgo.MessageCreate) string {
 	user.DiscordID.Int64 = id
 	user.DiscordID.Valid = true
 	gosubscribe.DB.Save(&user)
-	log.Printf("registered user: %d -> %d\n", user.ID, user.DiscordID)
+	log.Printf(
+		".register: registered user (Discord): %d -> %d\n",
+		user.ID, user.DiscordID.Int64,
+	)
 	return "Registered Discord."
 }
 
@@ -74,5 +80,6 @@ func getSecret(m *discordgo.MessageCreate) string {
 	if err != nil {
 		return err.Error()
 	}
+	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
 	return fmt.Sprintf("Your secret is: `%s`.", secret)
 }
