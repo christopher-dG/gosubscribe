@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,7 @@ func initUser(m *discordgo.MessageCreate) string {
 		return fmt.Sprintf("You're already initialized; your secret is `%s`.", user.Secret)
 	}
 	user, _ = createUser(m.Author)
+	log.Printf("initialized new user: %d -> %d\n", user.ID, user.DiscordID)
 	return fmt.Sprintf("Initialized; your secret is `%s`.", user.Secret)
 }
 
@@ -58,6 +60,7 @@ func registerUser(m *discordgo.MessageCreate) string {
 	user.DiscordID.Int64 = id
 	user.DiscordID.Valid = true
 	gosubscribe.DB.Save(&user)
+	log.Printf("registered user: %d -> %d\n", user.ID, user.DiscordID)
 	return "Registered Discord."
 }
 

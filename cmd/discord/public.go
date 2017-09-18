@@ -73,6 +73,7 @@ func subscribe(m *discordgo.MessageCreate) string {
 	}
 
 	if len(mappers) == 0 {
+		log.Printf(".sub: couldn't find any mappers (from %s)\n", m.Content)
 		return fmt.Sprintf("%s, no mappers were found.", m.Author.Mention())
 	} else {
 		user.Subscribe(mappers)
@@ -80,6 +81,10 @@ func subscribe(m *discordgo.MessageCreate) string {
 		for _, mapper := range mappers {
 			subscribed = append(subscribed, mapper.Username)
 		}
+		log.Printf(
+			"subscribed %d to %d/%d mapper(s) (from %s)\n",
+			user.ID, len(mappers), len(names), m.Content,
+		)
 		return fmt.Sprintf(
 			"%s subscribed to: %s.",
 			m.Author.Mention(), strings.Join(subscribed, ", "),
@@ -114,6 +119,10 @@ func unsubscribe(m *discordgo.MessageCreate) string {
 
 	}
 
+	log.Println(
+		"unsubscribed %d from %d/%d mapper(s) (from %s)\n",
+		user.ID, len(unsubscribed), len(names), m.Content,
+	)
 	if len(unsubscribed) > 0 {
 		return fmt.Sprintf(
 			"%s unsubscribed from: %s",
@@ -133,6 +142,7 @@ func purge(m *discordgo.MessageCreate) string {
 		return err.Error()
 	}
 	gosubscribe.DB.Where("user_id = ?", user.ID).Delete(gosubscribe.Subscription{})
+	log.Printf("purged subscriptions for %d\n", user.ID)
 	return fmt.Sprintf("%s is no longer subscribed to any mappers.", m.Author.Mention())
 }
 
@@ -147,6 +157,8 @@ func list(m *discordgo.MessageCreate) string {
 	for _, mapper := range mappers {
 		names = append(names, mapper.Username)
 	}
+
+	log.Printf("Listing %d subscription(s) for %d\n", len(names), user.ID)
 	if len(names) > 0 {
 		return fmt.Sprintf(
 			"%s is subscribed to: %s",
@@ -171,6 +183,7 @@ func top(m *discordgo.MessageCreate) string {
 			n = int(math.Min(float64(parsed), 25))
 		}
 	}
+	log.Printf("displaying top %d mappers (from %s)\n", n, m.Content)
 	return formatCounts(gosubscribe.Top(n))
 }
 
@@ -205,6 +218,11 @@ func count(m *discordgo.MessageCreate) string {
 			counts[gosubscribe.Mapper{Username: name}] = 0
 		}
 	}
+
+	log.Printf(
+		"displaying counts for %d mapper(s) (%d found) (from %s)\n",
+		len(counts), len(mappers), m.Content,
+	)
 	return formatCounts(counts)
 }
 

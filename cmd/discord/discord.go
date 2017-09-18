@@ -16,7 +16,6 @@ var (
 	testChannel string = os.Getenv("DISCORD_TEST_CHANNEL")
 	test        bool   = os.Getenv("DB_NAME") == "test"
 	me          string = os.Getenv("DISCORD_ME")
-	authHelp    string = "https://github.com/christopher-dG/gosubscribe#authentication"
 )
 
 func main() {
@@ -55,9 +54,9 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	if isPrivate(s, m) {
-		handlePrivate(s, m)
+		go handlePrivate(s, m)
 	} else {
-		handlePublic(s, m)
+		go handlePublic(s, m)
 	}
 }
 
