@@ -29,9 +29,6 @@ func main() {
 
 	bot.AddCallback("PRIVMSG", handleMessage)
 	bot.AddCallback("PING", pong)
-
-	bot.Privmsg("Slow_Twitch", ".register 2232521934")
-
 	bot.Loop()
 }
 

@@ -16,11 +16,6 @@ func (user *User) Unsubscribe(mappers []Mapper) {
 	}
 }
 
-// Purge unsubscribes a user from all mappers.
-func (user *User) Purge() {
-	DB.Table("subscriptions").Where("user_id = ?", user.ID).Delete(Subscription{})
-}
-
 // ListSubscribed gets all mappers that a user is subscribed to.
 func (user *User) ListSubscribed() []Mapper {
 	var mappers []Mapper
@@ -31,6 +26,11 @@ func (user *User) ListSubscribed() []Mapper {
 	return mappers
 }
 
+// Purge unsubscribes a user from all mappers.
+func (user *User) Purge() {
+	DB.Table("subscriptions").Where("user_id = ?", user.ID).Delete(Subscription{})
+}
+
 // Count gets the number of users that are subscribed to a mapper.
 func (mapper *Mapper) Count() uint {
 	var count uint
@@ -38,8 +38,8 @@ func (mapper *Mapper) Count() uint {
 	return count
 }
 
-// Count gets the subscriber counts for a list of mappers.
-func Count(mappers []Mapper) map[Mapper]uint {
+// GetCounts gets the subscriber counts for a list of mappers.
+func GetCounts(mappers []Mapper) map[Mapper]uint {
 	counts := make(map[Mapper]uint)
 	for _, mapper := range mappers {
 		counts[mapper] = mapper.Count()
@@ -47,8 +47,8 @@ func Count(mappers []Mapper) map[Mapper]uint {
 	return counts
 }
 
-// Top gets the n mappers with the most subscribers and their subscription counts.
-func Top(n int) map[Mapper]uint {
+// TopCounts gets the n mappers with the most subscribers and their subscription counts.
+func TopCounts(n int) map[Mapper]uint {
 	counts := make(map[Mapper]uint)
 	var subs []Subscription
 	// TODO: Figure out how to properly build this query.

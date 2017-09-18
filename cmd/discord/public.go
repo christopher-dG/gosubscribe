@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"math"
-	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -51,44 +48,8 @@ func subscribe(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
 		return err.Error()
-	}
-	tokens := strings.SplitN(m.Content, " ", 2)
-	if len(tokens) == 1 {
-		return fmt.Sprintf(
-			"%s, you need to supply at least one mapper.",
-			m.Author.Mention(),
-		)
-	}
-
-	names := strings.Split(tokens[1], ",")
-	mappers := []gosubscribe.Mapper{}
-	for _, name := range names {
-		name = strings.TrimSpace(name)
-		mapper, err := gosubscribe.GetMapper(name)
-		if err == nil {
-			mappers = append(mappers, mapper)
-		} else {
-			log.Println(err)
-		}
-	}
-
-	if len(mappers) == 0 {
-		log.Printf(".sub: couldn't find any mappers (from %s)\n", m.Content)
-		return fmt.Sprintf("%s, no mappers were found.", m.Author.Mention())
 	} else {
-		user.Subscribe(mappers)
-		subscribed := []string{}
-		for _, mapper := range mappers {
-			subscribed = append(subscribed, mapper.Username)
-		}
-		log.Printf(
-			".sub: subscribed %d to %d/%d mapper(s) (from %s)\n",
-			user.ID, len(mappers), len(names), m.Content,
-		)
-		return fmt.Sprintf(
-			"%s subscribed to: %s.",
-			m.Author.Mention(), strings.Join(subscribed, ", "),
-		)
+		return gosubscribe.Subscribe(user, m.Content, m.Author.Mention())
 	}
 }
 
@@ -97,40 +58,18 @@ func unsubscribe(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
 		return err.Error()
-	}
-	tokens := strings.SplitN(m.Content, " ", 2)
-	if len(tokens) == 1 {
-		return fmt.Sprintf(
-			"%s, you need to supply at least one mapper.",
-			m.Author.Mention(),
-		)
-	}
-
-	names := strings.Split(tokens[1], ",")
-	unsubscribed := []string{}
-	for _, name := range names {
-		name = strings.TrimSpace(name)
-		var mapper gosubscribe.Mapper
-		gosubscribe.DB.Where("lower(username) = lower(?)", name).First(&mapper)
-		if mapper.ID != 0 {
-			unsubscribed = append(unsubscribed, mapper.Username)
-			gosubscribe.DB.Delete(gosubscribe.Subscription{user.ID, mapper.ID})
-		}
-	}
-
-	log.Printf(
-		".unsub: unsubscribed %d from %d/%d mapper(s) (from %s)\n",
-		user.ID, len(unsubscribed), len(names), m.Content,
-	)
-	if len(unsubscribed) > 0 {
-		return fmt.Sprintf(
-			"%s unsubscribed from: %s",
-			m.Author.Mention(), strings.Join(unsubscribed, ", "),
-		)
 	} else {
-		return fmt.Sprintf(
-			"%s, you weren't subscribed to any of those mappers.", m.Author.Mention(),
-		)
+		return gosubscribe.Unsubscribe(user, m.Content, m.Author.Mention())
+	}
+}
+
+// list displays the mappers that the user is subscribed to.
+func list(m *discordgo.MessageCreate) string {
+	user, err := getUser(m.Author)
+	if err != nil {
+		return err.Error()
+	} else {
+		return gosubscribe.List(user, m.Author.Mention())
 	}
 }
 
@@ -139,88 +78,22 @@ func purge(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
 		return err.Error()
+	} else {
+		return gosubscribe.Purge(user, m.Author.Mention())
 	}
-	gosubscribe.DB.Where("user_id = ?", user.ID).Delete(gosubscribe.Subscription{})
-	log.Printf(".purge: purged subscriptions for %d\n", user.ID)
-	return fmt.Sprintf("%s is no longer subscribed to any mappers.", m.Author.Mention())
 }
 
-// list displays the mappers that the user is subscribed to.
-func list(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
-	if err != nil {
-		return err.Error()
-	}
-	mappers := user.ListSubscribed()
-	names := []string{}
-	for _, mapper := range mappers {
-		names = append(names, mapper.Username)
-	}
-
-	log.Printf(".list: listing %d subscription(s) for %d\n", len(names), user.ID)
-	if len(names) > 0 {
-		return fmt.Sprintf(
-			"%s is subscribed to: %s",
-			m.Author.Mention(), strings.Join(names, ", "),
-		)
+// count displays the subscriber counts for the given mappers.
+func count(m *discordgo.MessageCreate) string {
+	res := gosubscribe.Count(m.Content, m.Author.Mention())
+	if strings.HasPrefix(res, m.Author.Mention()) {
+		return res
 	} else {
-		return fmt.Sprintf("%s is not subscribed to any mappers.", m.Author.Mention())
+		return fmt.Sprintf("```%s```", res)
 	}
 }
 
 // top displays the subscriber counts  for the mappers with the most subscribers.
 func top(m *discordgo.MessageCreate) string {
-	tokens := strings.SplitN(m.Content, " ", 2)
-	var n int
-	if len(tokens) == 1 {
-		n = 5
-	} else {
-		parsed, err := strconv.ParseInt(tokens[1], 10, 64)
-		if err != nil || parsed <= 0 {
-			n = 5
-		} else {
-			n = int(math.Min(float64(parsed), 25))
-		}
-	}
-	log.Printf(".top: displaying top %d mappers (from %s)\n", n, m.Content)
-	return fmt.Sprintf("```%s```", gosubscribe.FormatCounts(gosubscribe.Top(n)))
-}
-
-// count displays the subscriber counts for the given mappers.
-func count(m *discordgo.MessageCreate) string {
-	tokens := strings.SplitN(m.Content, " ", 2)
-	if len(tokens) == 1 {
-		return fmt.Sprintf(
-			"%s, you need to supply at least one mapper.",
-			m.Author.Mention(),
-		)
-	}
-
-	names := strings.Split(tokens[1], ",")
-	for i, name := range names {
-		names[i] = strings.TrimSpace(name)
-	}
-	mappers := []gosubscribe.Mapper{}
-	for _, name := range names {
-		mapper, err := gosubscribe.MapperFromDB(name)
-		if err == nil {
-			mappers = append(mappers, mapper)
-		} else {
-			log.Println(err)
-		}
-	}
-
-	counts := gosubscribe.Count(mappers)
-	// Add 0 counts for each mapper not found in the DB.
-	for _, name := range names {
-		if !gosubscribe.HasMapper(counts, name) {
-			counts[gosubscribe.Mapper{Username: name}] = 0
-		}
-	}
-
-	log.Printf(
-		".count: displaying counts for %d mapper(s) (%d found) (from %s)\n",
-		len(counts), len(mappers), m.Content,
-	)
-	return fmt.Sprintf("```%s```", gosubscribe.FormatCounts(counts))
+	return fmt.Sprintf("```%s```", gosubscribe.Top(m.Content))
 }
