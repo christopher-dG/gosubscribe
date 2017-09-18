@@ -6,8 +6,8 @@
 
 **Subscribe to osu! users to be notified about their new/updated maps.**
 
-To get started, join the o!subscribe Discord server, invite the bot to your own server,
-or add the bot as a friend on osu! with the buttons above.
+To get started, join the o!subscribe Discord server, invite the bot to your
+own server, or add the bot as a friend on osu! with the buttons above.
 
 ## Command Reference
 
@@ -19,9 +19,9 @@ If you're brand new, you may want to skip ahead to
 | `.sub` | `mapper, mapper2, ...` | Subscribe to given mappers. | `.sub pishifat, monstrata` |
 | `.unsub` | `username1, username2, ...` | Unsubscribe from given mappers. | `.unsub pishifat, monstrata` |
 | `.list` |  | Display your current subscriptions. | `.list` |
+| `.purge` | | Unsubscribe from all mappers. | `.purge` |
 | `.count` | `mapper1, mapper2, ...` | Display subscriber counts for given mappers. | `.count pishifat, monstrata` |
 | `.top` | `[n=5]` | Display subscriber counts for the top `n` mappers. | `.top 10` |
-| `.purge` | | Unsubscribe from all mappers. | `.purge` |
 | `.server` | | Link to the o!subscribe Discord server. | `.server` |
 | `.invite` | | Link to a `subscription-bot` Discord invite. | `.invite` |
 | `.osu` | | Link to the bot's userpage. | `.osu` |

@@ -19,10 +19,10 @@ func handlePrivate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch strings.Split(m.Content, " ")[0] {
 	case ".init":
 		msg = initUser(m)
-	case ".register":
-		msg = registerUser(m)
 	case ".secret":
 		msg = getSecret(m)
+	case ".register":
+		msg = registerUser(m)
 	case ".help":
 		msg = fmt.Sprintf("<%s>", gosubscribe.HelpURL)
 	default:
@@ -43,6 +43,20 @@ func initUser(m *discordgo.MessageCreate) string {
 		user.ID, user.DiscordID.Int64,
 	)
 	return fmt.Sprintf("Initialized; your secret is `%s`.", user.Secret)
+}
+
+// getSecret retrieves a user's secret.
+func getSecret(m *discordgo.MessageCreate) string {
+	user, err := getUser(m.Author)
+	if err != nil {
+		return err.Error()
+	}
+	secret, err := gosubscribe.GetSecret(user)
+	if err != nil {
+		return err.Error()
+	}
+	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
+	return fmt.Sprintf("Your secret is: `%s`.", secret)
 }
 
 // registerUser registers a user's Discord ID with their existing account.
@@ -68,18 +82,4 @@ func registerUser(m *discordgo.MessageCreate) string {
 		user.ID, user.DiscordID.Int64,
 	)
 	return "Registered Discord."
-}
-
-// getSecret retrieves a user's secret.
-func getSecret(m *discordgo.MessageCreate) string {
-	user, err := getUser(m.Author)
-	if err != nil {
-		return err.Error()
-	}
-	secret, err := gosubscribe.GetSecret(user)
-	if err != nil {
-		return err.Error()
-	}
-	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
-	return fmt.Sprintf("Your secret is: `%s`.", secret)
 }

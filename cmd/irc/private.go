@@ -10,9 +10,8 @@ import (
 )
 
 func handlePrivate(e *irc.Event) {
-	tokens := strings.SplitN(e.Message(), " ", 2)
 	var msg string
-	switch tokens[0] {
+	switch strings.SplitN(e.Message(), " ", 2)[0] {
 	case ".sub":
 		msg = subscribe(e)
 	case ".unsub":
@@ -27,10 +26,10 @@ func handlePrivate(e *irc.Event) {
 		msg = top(e)
 	case ".init":
 		msg = initUser(e)
-	case ".register":
-		msg = registerUser(e)
 	case ".secret":
 		msg = getSecret(e)
+	case ".register":
+		msg = registerUser(e)
 	case ".server":
 		msg = gosubscribe.ServerURL
 	case ".invite":
@@ -109,6 +108,20 @@ func initUser(e *irc.Event) string {
 	return fmt.Sprintf("Initialized; your secret is `%s`.", user.Secret)
 }
 
+// getSecret retrieves a user's secret.
+func getSecret(e *irc.Event) string {
+	user, err := getUser(e.Nick)
+	if err != nil {
+		return err.Error()
+	}
+	secret, err := gosubscribe.GetSecret(user)
+	if err != nil {
+		return err.Error()
+	}
+	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
+	return fmt.Sprintf("Your secret is: `%s`.", secret)
+}
+
 // registerUser registers a user's osu! username with their existing account.
 func registerUser(e *irc.Event) string {
 	tokens := strings.Split(e.Message(), " ")
@@ -132,18 +145,4 @@ func registerUser(e *irc.Event) string {
 		user.ID, user.OsuUsername.String,
 	)
 	return "Registered osu!."
-}
-
-// getSecret retrieves a user's secret.
-func getSecret(e *irc.Event) string {
-	user, err := getUser(e.Nick)
-	if err != nil {
-		return err.Error()
-	}
-	secret, err := gosubscribe.GetSecret(user)
-	if err != nil {
-		return err.Error()
-	}
-	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
-	return fmt.Sprintf("Your secret is: `%s`.", secret)
 }

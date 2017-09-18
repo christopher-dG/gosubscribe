@@ -27,15 +27,6 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 		msg = count(m)
 	case ".top":
 		msg = top(m)
-	case ".init":
-		fallthrough
-	case ".register":
-		fallthrough
-	case ".secret":
-		msg = fmt.Sprintf(
-			"%s, this command belongs in a private message.",
-			m.Author.Mention(),
-		)
 	case ".server":
 		msg = gosubscribe.ServerURL
 	case ".invite":
@@ -44,8 +35,15 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 		msg = gosubscribe.OsuUserURL
 	case ".help":
 		msg = fmt.Sprintf("<%s>", gosubscribe.HelpURL)
+	case ".init":
+		fallthrough
+	case ".secret":
+		fallthrough
+	case ".register":
+		msg = fmt.Sprintf(
+			"%s, this command belongs in a private message.", m.Author.Mention(),
+		)
 	}
-
 	s.ChannelMessageSend(m.ChannelID, msg)
 }
 
