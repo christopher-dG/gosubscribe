@@ -12,10 +12,13 @@ import (
 )
 
 var (
-	DB      *gorm.DB // Connect must be called before using this.
-	HelpURL string   = "https://github.com/christopher-dG/gosubscribe#command-reference"
-	osuURL  string   = "https://osu.ppy.sh/api"
-	osuKey  string   = os.Getenv("OSU_API_KEY")
+	DB         *gorm.DB // Connect must be called before using this.
+	HelpURL    string   = "https://github.com/christopher-dG/gosubscribe#command-reference"
+	ServerURL  string   = "https://discord.gg/qaUhTKJ"
+	InviteURL  string   = "https://discordapp.com/oauth2/authorize?client_id=305550679538401280&scope=bot&permissions=3072"
+	OsuUserURL string   = "https://osu.ppy.sh/users/3172543"
+	osuURL     string   = "https://osu.ppy.sh/api"
+	osuKey     string   = os.Getenv("OSU_API_KEY")
 )
 
 // Connect connects to a given PostreSQL database.
@@ -34,8 +37,8 @@ func Connect(host, user, dbname, password string) {
 	DB = db // From now on, we can access the database from anywhere via DB.
 }
 
-// formatCounts converts a mapper -> subscriber count mapping to a fenced code block,
-// ordering the counts in descending order.
+// formatCounts converts a mapper -> subscriber count mapping to an evenly spaced
+// table, ordering the counts in descending order.
 func FormatCounts(counts map[Mapper]uint) string {
 	// First, get the maximum width a mapper's name for formatting.
 	maxWidth := -1

@@ -36,6 +36,12 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"%s, this command belongs in a private message.",
 			m.Author.Mention(),
 		)
+	case ".server":
+		msg = gosubscribe.ServerURL
+	case ".invite":
+		msg = fmt.Sprintf("<%s>", gosubscribe.InviteURL)
+	case ".osu":
+		msg = gosubscribe.OsuUserURL
 	case ".help":
 		msg = fmt.Sprintf("<%s>", gosubscribe.HelpURL)
 	}

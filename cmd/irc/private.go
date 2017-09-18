@@ -31,6 +31,12 @@ func handlePrivate(e *irc.Event) {
 		msg = registerUser(e)
 	case ".secret":
 		msg = getSecret(e)
+	case ".server":
+		msg = gosubscribe.ServerURL
+	case ".invite":
+		msg = gosubscribe.InviteURL
+	case ".osu":
+		msg = gosubscribe.OsuUserURL
 	case ".help":
 		msg = gosubscribe.HelpURL
 	default:
