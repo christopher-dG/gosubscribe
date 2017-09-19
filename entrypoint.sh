@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source /go/src/app/config.sh
+source $GOPATH/src/app/config.sh
 
 if [[ $1 = 'bash' ]]; then
     exec bash
