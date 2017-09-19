@@ -20,8 +20,8 @@ type Mapper struct {
 	Username string `gorm:"not null" json:"username"`
 }
 
-// Map is an osu! beatmap.
-type Map struct {
+// Mapset is an osu! beatmapset.
+type Mapset struct {
 	ID       uint `json:"beatmapset_id,string"`
 	MapperID uint `json:"-"` // Need to fill this field manually.
 	Status   int  `json:"approved,string"`

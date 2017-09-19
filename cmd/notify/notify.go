@@ -67,22 +67,22 @@ func main() {
 	notifications["update"] = make(map[*gosubscribe.User]*OsuSearchMapset)
 
 	for i := 0; i < 2; i++ { // 1000 maps.
-		maps, err := getMaps(i)
+		mapsets, err := getMapsets(i)
 		if err != nil {
 			logMsg(fmt.Sprintf("Getting data from osusearch.com failed: %s", err))
 		}
 
-		maps = dedup(maps)
+		mapsets = dedup(mapsets)
 
-		for _, beatmap := range maps {
-			existing := new(gosubscribe.Map)
-			gosubscribe.DB.Where("id = ?", beatmap.ID).First(existing)
+		for _, mapset := range mapsets {
+			existing := new(gosubscribe.Mapset)
+			gosubscribe.DB.Where("id = ?", mapset.ID).First(existing)
 			if existing.ID == 0 {
-				// processNew(beatmap)
-			} else if existing.Status == beatmap.Status {
-				// processStatusUpdate(beatmap)
+				// processNew(mapset)
+			} else if existing.Status == mapset.Status {
+				// processStatusUpdate(mapset)
 			} else {
-				// processUpdate(beatmap)
+				// processUpdate(mapset)
 			}
 		}
 
@@ -142,24 +142,24 @@ func processUpdate(mapset *OsuSearchMapset) {
 // dedup removes maps from the same beatmapset from the list (maybe unnecessary).
 func dedup(list []*OsuSearchMapset) []*OsuSearchMapset {
 	uniq := []*OsuSearchMapset{}
-	for _, beatmap := range list {
+	for _, mapset := range list {
 		contains := false
-		fmt.Println(beatmap.ID)
+		fmt.Println(mapset.ID)
 		for _, existing := range uniq {
-			if beatmap.ID == existing.ID {
+			if mapset.ID == existing.ID {
 				contains = true
 				break
 			}
 		}
 		if !contains {
-			uniq = append(uniq, beatmap)
+			uniq = append(uniq, mapset)
 		}
 	}
 	return uniq
 }
 
-// getMaps retrieves maps from osusearch.com.
-func getMaps(offset int) ([]*OsuSearchMapset, error) {
+// getMapsets retrieves mapsets from osusearch.com.
+func getMapsets(offset int) ([]*OsuSearchMapset, error) {
 	url := fmt.Sprintf("%s?key=%s&count=500&offset=%d", searchURL, searchKey, offset)
 	log.Printf("Requesting from %s\n", strings.Replace(url, searchKey, "[secure]", 1))
 	resp, err := http.Get(url)

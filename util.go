@@ -55,10 +55,10 @@ func HasMapper(mappers map[*Mapper]uint, key string) bool {
 	return false
 }
 
-// HasMap determines whether or not the given key is contained in a list of Maps.
-func HasMap(maps []*Map, key *Map) bool {
-	for _, beatmap := range maps {
-		if beatmap.ID == key.ID {
+// HasMapset determines whether or not the given key is contained in a list.
+func HasMapset(mapsets []*Mapset, key *Mapset) bool {
+	for _, mapset := range mapsets {
+		if mapset.ID == key.ID {
 			return true
 		}
 	}

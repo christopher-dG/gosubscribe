@@ -70,20 +70,20 @@ func MapperFromDB(name string) (*Mapper, error) {
 // Insert adds a new mapper to the databse.
 func (mapper *Mapper) Insert() {
 	DB.Create(mapper)
-	maps, err := mapper.GetMaps()
+	mapsets, err := mapper.GetMapsets()
 	if err != nil {
-		log.Printf("Maps could not be retrieved for %s\n", mapper.Username)
+		log.Printf("Mapsets could not be retrieved for %s\n", mapper.Username)
 		return
 	}
 
-	// Add the mapper's maps to the DB.
-	inserted := []*Map{}
-	for _, beatmap := range maps {
+	// Add the mapper's mapsets to the DB.
+	inserted := []*Mapset{}
+	for _, mapset := range mapsets {
 
-		if !HasMap(inserted, beatmap) {
-			inserted = append(inserted, beatmap)
-			beatmap.MapperID = mapper.ID
-			DB.Create(&beatmap)
+		if !HasMapset(inserted, mapset) {
+			inserted = append(inserted, mapset)
+			mapset.MapperID = mapper.ID
+			DB.Create(&mapset)
 		}
 	}
 }
@@ -95,9 +95,9 @@ func (mapper *Mapper) Update(newName string) {
 	DB.Save(&mapper)
 }
 
-// GetMaps gets all maps by the mapper.
-func (mapper *Mapper) GetMaps() ([]*Map, error) {
-	var maps []Map
+// GetMapsets gets all mapsets by the mapper.
+func (mapper *Mapper) GetMapsets() ([]*Mapset, error) {
+	var mapsets []Mapset
 	url := fmt.Sprintf("%s/get_beatmaps?k=%s&u=%d", osuURL, osuKey, mapper.ID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -110,18 +110,18 @@ func (mapper *Mapper) GetMaps() ([]*Map, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(body, &maps)
+	err = json.Unmarshal(body, &mapsets)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("retrieved %d maps\n", len(maps))
+	log.Printf("retrieved %d mapsets\n", len(mapsets))
 	// The API doesn't provide mapper ID so we need to fill it ourselves.
 	// Convert to pointers at the same time.
-	ptrs := []*Map{}
-	for i, beatmap := range maps {
-		beatmap.MapperID = mapper.ID
-		ptrs = append(ptrs, &maps[i])
+	ptrs := []*Mapset{}
+	for i, mapset := range mapsets {
+		mapset.MapperID = mapper.ID
+		ptrs = append(ptrs, &mapsets[i])
 	}
 
 	return ptrs, nil
