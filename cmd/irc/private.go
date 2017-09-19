@@ -86,12 +86,14 @@ func purge(e *irc.Event) string {
 
 // count displays the subscriber counts for the given mappers.
 func count(e *irc.Event) string {
-	return gosubscribe.Count(e.Message(), "")
+	return "Sorry, this command is only available on Discord for now."
+	// return gosubscribe.Count(e.Message(), "")
 }
 
 // top displays the subscriber counts  for the mappers with the most subscribers.
 func top(e *irc.Event) string {
-	return gosubscribe.Top(e.Message())
+	return "Sorry, this command is only available on Discord for now."
+	// return gosubscribe.Top(e.Message())
 }
 
 // initUser adds a new user.
