@@ -28,6 +28,7 @@ func Connect(host, user, dbname, password string) {
 	DB = db // From now on, we can access the database from anywhere via DB.
 }
 
+// GetUser retrieves a user by their ID.
 func GetUser(id uint) (*User, error) {
 	user := new(User)
 	DB.Where("ID = ?", id).First(user)

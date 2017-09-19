@@ -26,13 +26,13 @@ var (
 	logChannel    = os.Getenv("DISCORD_LOG_CHANNEL")
 	searchKey     = os.Getenv("OSUSEARCH_API_KEY")
 	searchURL     = "http://osusearch.com/api/search"
-	notifications = make(map[string]map[*gosubscribe.User]*OsuSearchMapset)
+	notifications = make(map[string]map[*gosubscribe.User][]*OsuSearchMapset)
 	bot           *discordgo.Session
 )
 
 // SearchResult is the JSON structure returned by osusearch.com.
 type SearchResult struct {
-	Maps []*OsuSearchMapset `json:"beatmaps"`
+	Mapsets []*OsuSearchMapset `json:"beatmaps"`
 }
 
 // OsuSearchMapset is an osu! beatmapset that comes from osusearch.com
@@ -60,34 +60,43 @@ func main() {
 	}
 
 	today := time.Now().Format("2006-01-02")
-	logMsg(fmt.Sprintf("Starting run for %s...", today))
+	logMsg(fmt.Sprintf("Starting run for %s.", today))
 
-	notifications["new"] = make(map[*gosubscribe.User]*OsuSearchMapset)
-	notifications["statusUpdate"] = make(map[*gosubscribe.User]*OsuSearchMapset)
-	notifications["update"] = make(map[*gosubscribe.User]*OsuSearchMapset)
+	notifications["new"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
+	notifications["status"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
+	notifications["update"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
 
-	for i := 0; i < 2; i++ { // 1000 maps.
+	processMapsets()
+	notify()
+
+	logMsg(fmt.Sprintf("Finished run for %s.", today))
+}
+
+func processMapsets() {
+	for i := 0; i < 2; i++ { // 1000 mapsets.
 		mapsets, err := getMapsets(i)
 		if err != nil {
 			logMsg(fmt.Sprintf("Getting data from osusearch.com failed: %s", err))
 		}
 
 		mapsets = dedup(mapsets)
+		log.Printf("Retrieved %d mapset(s)\n", len(mapsets))
 
 		for _, mapset := range mapsets {
 			existing := new(gosubscribe.Mapset)
 			gosubscribe.DB.Where("id = ?", mapset.ID).First(existing)
 			if existing.ID == 0 {
-				// processNew(mapset)
-			} else if existing.Status == mapset.Status {
-				// processStatusUpdate(mapset)
+				processMapset(mapset, "new")
+			} else if existing.Status != mapset.Status {
+				processMapset(mapset, "status")
 			} else {
-				// processUpdate(mapset)
+				processMapset(mapset, "update")
 			}
 		}
-
 	}
-	logMsg(fmt.Sprintf("Finished run for %s.", today))
+}
+
+func notify() {
 }
 
 func getSubs(mapper *gosubscribe.Mapper) []*gosubscribe.User {
@@ -102,40 +111,32 @@ func getSubs(mapper *gosubscribe.Mapper) []*gosubscribe.User {
 			users = append(users, user)
 		}
 	}
-	log.Printf("Retrieved %d subscribers for %s\n", len(users), mapper.Username)
+	log.Printf("Retrieved %d subscriber(s) for %s\n", len(users), mapper.Username)
 	return users
 }
 
-func processNew(mapset *OsuSearchMapset) {
+func processMapset(mapset *OsuSearchMapset, key string) {
 	mapper, err := gosubscribe.MapperFromDB(mapset.Mapper)
 	if err != nil {
 		return // No mapper means no subs.
 	}
-	subs := getSubs(mapper)
-	for _, sub := range subs {
-		notifications["new"][sub] = mapset
-	}
-}
 
-func processStatusUpdate(mapset *OsuSearchMapset) {
-	mapper, err := gosubscribe.MapperFromDB(mapset.Mapper)
-	if err != nil {
-		return // No mapper means no subs.
-	}
 	subs := getSubs(mapper)
 	for _, sub := range subs {
-		notifications["statusUpdate"][sub] = mapset
+		notifications[key][sub] = append(notifications[key][sub], mapset)
 	}
-}
 
-func processUpdate(mapset *OsuSearchMapset) {
-	mapper, err := gosubscribe.MapperFromDB(mapset.Mapper)
-	if err != nil {
-		return // No mapper means no subs.
+	updated := gosubscribe.Mapset{
+		ID: mapset.ID, MapperID: mapper.ID, Status: mapset.Status,
 	}
-	subs := getSubs(mapper)
-	for _, sub := range subs {
-		notifications["update"][sub] = mapset
+	if key == "new" {
+		logMsg(fmt.Sprintf("New map: %s", discordString(mapset)))
+		gosubscribe.DB.Create(&updated)
+	} else if key == "status" {
+		logMsg(fmt.Sprintf("Ranked status updated: %s", discordString(mapset)))
+		gosubscribe.DB.Save(&updated)
+	} else {
+		logMsg(fmt.Sprintf("Updated by mapper: %s", discordString(mapset)))
 	}
 }
 
@@ -144,7 +145,6 @@ func dedup(list []*OsuSearchMapset) []*OsuSearchMapset {
 	uniq := []*OsuSearchMapset{}
 	for _, mapset := range list {
 		contains := false
-		fmt.Println(mapset.ID)
 		for _, existing := range uniq {
 			if mapset.ID == existing.ID {
 				contains = true
@@ -179,15 +179,26 @@ func getMapsets(offset int) ([]*OsuSearchMapset, error) {
 		return nil, err
 	}
 
-	maps := []*OsuSearchMapset{}
-	for i, _ := range result.Maps {
-		maps = append(maps, result.Maps[i])
-	}
-
-	return maps, nil
+	return result.Mapsets, nil
 }
 
 func logMsg(msg string) {
 	log.Println(msg)
-	// bot.ChannelMessageSend(logChannel, msg)
+	bot.ChannelMessageSend(logChannel, msg)
+}
+
+// discordString converts a mapset into a stylized string for Discord.
+func discordString(mapset *OsuSearchMapset) string {
+	return fmt.Sprintf(
+		"`%s - %s` by `%s` (<https://osu.ppy.sh/s/%d>)",
+		mapset.Artist, mapset.Title, mapset.Mapper, mapset.ID,
+	)
+}
+
+// osuString converts a mapset into a stylized string for IRC.
+func osuString(mapset *OsuSearchMapset) string {
+	return fmt.Sprintf(
+		"[https://osu.ppy.sh/s/%d %s - %s] by [https://osu.ppy.sh/u/%s %s]",
+		mapset.ID, mapset.Artist, mapset.Title, mapset.Mapper, mapset.Mapper,
+	)
 }

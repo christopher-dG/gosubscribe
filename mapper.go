@@ -19,7 +19,7 @@ var (
 func GetMapper(name string) (*Mapper, error) {
 	mapper := new(Mapper)
 	url := fmt.Sprintf("%s/get_user?k=%s&u=%s&type=string", osuURL, osuKey, name)
-	log.Printf("requesting from: %s\n", strings.Replace(url, osuKey, "[secure]", 1))
+	log.Printf("Requesting from: %s\n", strings.Replace(url, osuKey, "[secure]", 1))
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,6 @@ func (mapper *Mapper) Insert() {
 	// Add the mapper's mapsets to the DB.
 	inserted := []*Mapset{}
 	for _, mapset := range mapsets {
-
 		if !HasMapset(inserted, mapset) {
 			inserted = append(inserted, mapset)
 			mapset.MapperID = mapper.ID
@@ -95,9 +94,10 @@ func (mapper *Mapper) Update(newName string) {
 	DB.Save(&mapper)
 }
 
-// GetMapsets gets all mapsets by the mapper.
+// GetMapsets gets all mapsets by the mapper. This will contain duplicates
+// (multiple diffs per set).
 func (mapper *Mapper) GetMapsets() ([]*Mapset, error) {
-	var mapsets []Mapset
+	var mapsets []*Mapset
 	url := fmt.Sprintf("%s/get_beatmaps?k=%s&u=%d", osuURL, osuKey, mapper.ID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -112,17 +112,14 @@ func (mapper *Mapper) GetMapsets() ([]*Mapset, error) {
 
 	err = json.Unmarshal(body, &mapsets)
 	if err != nil {
+		fmt.Println(err.Error())
 		return nil, err
 	}
 
-	log.Printf("retrieved %d mapsets\n", len(mapsets))
+	log.Printf("Retrieved %d mapset(s) (including duplicates)\n", len(mapsets))
 	// The API doesn't provide mapper ID so we need to fill it ourselves.
-	// Convert to pointers at the same time.
-	ptrs := []*Mapset{}
-	for i, mapset := range mapsets {
+	for _, mapset := range mapsets {
 		mapset.MapperID = mapper.ID
-		ptrs = append(ptrs, &mapsets[i])
 	}
-
-	return ptrs, nil
+	return mapsets, nil
 }
