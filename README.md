@@ -22,6 +22,8 @@ If you're brand new, you may want to skip ahead to
 | `.purge` | | Unsubscribe from all mappers. | `.purge` |
 | `.count` | `mapper1, mapper2, ...` | Display subscriber counts for given mappers. | `.count pishifat, monstrata` |
 | `.top` | `[n=5]` | Display subscriber counts for the top `n` mappers. | `.top 10` |
+| `.notifyall` | `y/n` | Enable or disable notifications **all** beatmap updates by subscribed mappers (not just new uploads and ranked status updates). | `.notifyall y` |
+| `.message` | `discord/osu!` | Set your preference for where you receive messages. | `.message osu!` |
 | `.server` | | Link to the o!subscribe Discord server. | `.server` |
 | `.invite` | | Link to a `subscription-bot` Discord invite. | `.invite` |
 | `.osu` | | Link to the bot's userpage. | `.osu` |

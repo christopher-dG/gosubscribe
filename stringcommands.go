@@ -203,3 +203,62 @@ func Top(body string) string {
 	log.Printf(".top: displaying top %d mappers (from %s)\n", n, body)
 	return FormatCounts(TopCounts(n))
 }
+
+// NotificationPreference sets the users preference for receiving notifications for map
+// updates that are not new uploads or ranked status changes.
+func NotificationPreference(user *User, body, mention string) string {
+	tokens := strings.SplitN(body, " ", 2)
+	if len(tokens) == 1 ||
+		(!strings.EqualFold(tokens[1], "n") && !strings.EqualFold(tokens[1], "y")) {
+		if len(mention) > 0 {
+			return fmt.Sprintf(
+				"%s, you need to supply a preference ('y' or 'n').", mention,
+			)
+		}
+		return "You need to supply a preference ('y' or 'n')."
+	}
+	// Now we know that the argument is a valid option.
+	pref := strings.EqualFold(tokens[1], "y")
+	var prefString string
+	if pref {
+		prefString = "all map updates"
+	} else {
+		prefString = "new uploads and ranked status updates"
+	}
+	user.SetNotifyAll(pref)
+	if len(mention) > 0 {
+		return fmt.Sprintf(
+			"%s, you will receive notifications for: %s.", mention, prefString,
+		)
+	}
+	return fmt.Sprintf("You will receive notifications for %s.", prefString)
+}
+
+// NotificationPlatform sets the user's platform preference for receiving notifications.
+func NotificationPlatform(user *User, body, mention string) string {
+	tokens := strings.SplitN(body, " ", 2)
+	if len(tokens) == 1 || (!strings.EqualFold(tokens[1], "discord") &&
+		!strings.EqualFold(tokens[1], "osu!")) {
+		if len(mention) > 0 {
+			return fmt.Sprintf(
+				"%s, you need to supply a preference ('discord' or 'osu!').", mention,
+			)
+		}
+		return "You need to supply a preference ('discord' or 'osu!')."
+	}
+	// Now we know that the argument is a valid option.
+	pref := strings.EqualFold(tokens[1], "osu!")
+	var prefString string
+	if pref {
+		prefString = "osu!"
+	} else {
+		prefString = "Discord"
+	}
+	user.SetMessageOsu(pref)
+	if len(mention) > 0 {
+		return fmt.Sprintf(
+			"%s, you set your notification platform to: %s.", mention, prefString,
+		)
+	}
+	return fmt.Sprintf("You set your notification platform to: %s.", prefString)
+}

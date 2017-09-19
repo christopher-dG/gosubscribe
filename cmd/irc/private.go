@@ -26,6 +26,10 @@ func handlePrivate(e *irc.Event) {
 		msg = count(e)
 	case ".top":
 		msg = top(e)
+	case ".notifyall":
+		msg = notifyAll(e)
+	case ".message":
+		msg = message(e)
 	case ".init":
 		msg = initUser(e)
 	case ".secret":
@@ -92,6 +96,24 @@ func count(e *irc.Event) string {
 func top(e *irc.Event) string {
 	return "Sorry, this command is only available on Discord for now."
 	// return gosubscribe.Top(e.Message())
+}
+
+// notifyAll sets the user's notification type preference.
+func notifyAll(e *irc.Event) string {
+	user, err := getUser(e.Nick)
+	if err != nil {
+		return "You're not initialized."
+	}
+	return gosubscribe.NotificationPreference(user, e.Message(), "")
+}
+
+// message sets the user's notification platform preference.
+func message(e *irc.Event) string {
+	user, err := getUser(e.Nick)
+	if err != nil {
+		return "You're not initialized."
+	}
+	return gosubscribe.NotificationPlatform(user, e.Message(), "")
 }
 
 // initUser adds a new user.

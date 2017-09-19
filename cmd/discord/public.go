@@ -27,6 +27,10 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 		msg = count(m)
 	case ".top":
 		msg = top(m)
+	case ".notifyall":
+		msg = notifyAll(m)
+	case ".message":
+		msg = message(m)
 	case ".server":
 		msg = gosubscribe.ServerURL
 	case ".invite":
@@ -96,4 +100,22 @@ func count(m *discordgo.MessageCreate) string {
 // top displays the subscriber counts  for the mappers with the most subscribers.
 func top(m *discordgo.MessageCreate) string {
 	return fmt.Sprintf("```%s```", gosubscribe.Top(m.Content))
+}
+
+// notifyAll sets the user's notification type preference.
+func notifyAll(m *discordgo.MessageCreate) string {
+	user, err := getUser(m.Author)
+	if err != nil {
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
+	}
+	return gosubscribe.NotificationPreference(user, m.Content, m.Author.Mention())
+}
+
+// message sets the user's notification platform preference.
+func message(m *discordgo.MessageCreate) string {
+	user, err := getUser(m.Author)
+	if err != nil {
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
+	}
+	return gosubscribe.NotificationPlatform(user, m.Content, m.Author.Mention())
 }

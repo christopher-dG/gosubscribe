@@ -94,3 +94,16 @@ func TopCounts(n int) map[*Mapper]uint {
 	}
 	return counts
 }
+
+// SetNotifyAll sets the users preference for receiving notifications for map updates that
+// are not new uploads or ranked status changes.
+func (user *User) SetNotifyAll(pref bool) {
+	user.NotifyAll = pref
+	DB.Save(user)
+}
+
+// SetMessageOsu sets the user's preference for receiving messages via osu! or via Discord.
+func (user *User) SetMessageOsu(pref bool) {
+	user.MessageOsu = pref
+	DB.Save(user)
+}
