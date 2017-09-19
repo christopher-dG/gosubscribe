@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,17 +17,19 @@ import (
 
 var (
 	statusMap = map[int]string{
+		-2: "Graveyard",
 		-1: "WIP",
-		0:  "pending",
-		1:  "ranked",
-		2:  "approved",
-		3:  "qualified",
-		4:  "loved",
+		0:  "Pending",
+		1:  "Ranked",
+		2:  "Approved",
+		3:  "Qualified",
+		4:  "Loved",
 	}
 	logChannel    = os.Getenv("DISCORD_LOG_CHANNEL")
 	searchKey     = os.Getenv("OSUSEARCH_API_KEY")
 	searchURL     = "http://osusearch.com/api/search"
-	notifications = make(map[string]map[*gosubscribe.User][]*OsuSearchMapset)
+	notifications = make(map[string]map[uint][]*OsuSearchMapset)
+	today         = time.Now().Format("2006-01-02")
 	bot           *discordgo.Session
 )
 
@@ -59,12 +62,11 @@ func main() {
 		bot = discord
 	}
 
-	today := time.Now().Format("2006-01-02")
 	logMsg(fmt.Sprintf("Starting run for %s.", today))
 
-	notifications["new"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
-	notifications["status"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
-	notifications["update"] = make(map[*gosubscribe.User][]*OsuSearchMapset)
+	notifications["new"] = make(map[uint][]*OsuSearchMapset)
+	notifications["status"] = make(map[uint][]*OsuSearchMapset)
+	notifications["update"] = make(map[uint][]*OsuSearchMapset)
 
 	processMapsets()
 	notify()
@@ -72,6 +74,7 @@ func main() {
 	logMsg(fmt.Sprintf("Finished run for %s.", today))
 }
 
+// processMapsets gets mapsets from osusearch.com and processes them.
 func processMapsets() {
 	for i := 0; i < 2; i++ { // 1000 mapsets.
 		mapsets, err := getMapsets(i)
@@ -96,9 +99,123 @@ func processMapsets() {
 	}
 }
 
+// notify sends messages to users about their subscriptions.
 func notify() {
+	var users []*gosubscribe.User
+	gosubscribe.DB.Find(&users)
+
+	for _, user := range users {
+		userNotifications := make(map[string][]*OsuSearchMapset)
+		userNotifications["new"] = notifications["new"][user.ID]
+		userNotifications["status"] = notifications["status"][user.ID]
+		userNotifications["update"] = notifications["update"][user.ID]
+
+		if user.MessageOsu {
+			if user.OsuUsername.Valid {
+				// TODO; continue if successful, fall back to Discord otherwise.
+				// Will have to deal with one-line messages, probably splitting them.
+				// msg := createMessage(user, userNotifications, "osu")
+				// lines := strings.split(strings.TrimSpace(msg), "\n")
+				// if len(lines) == 1 { // No notifications for this user.
+				// 	continue
+				// }
+			}
+			log.Printf("User %d has MessageOsu set but not OsuUsername", user.ID)
+		}
+
+		msg := createMessage(user, userNotifications, "discord")
+		fmt.Println(msg)
+		if len(strings.Split(strings.TrimSpace(msg), "\n")) == 1 {
+			continue // No notifications for this user.
+		}
+
+		if user.DiscordID.Valid {
+			dUser, err := bot.User(strconv.Itoa(int(user.DiscordID.Int64)))
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			channel, err := bot.UserChannelCreate(dUser.ID)
+			if err != nil {
+				logMsg(fmt.Sprintf(
+					"Sending to %s failed: Couldn't open a private message channel.",
+					dUser.Mention(),
+				))
+				continue
+			}
+
+			_, err = bot.ChannelMessageSend(channel.ID, msg)
+			if err != nil {
+				logMsg(fmt.Sprintf("Sending to %s failed: '%s'", dUser.Mention(), err))
+			} else {
+				logMsg(fmt.Sprintf(
+					"Sent message to `%s#%s` (Discord).",
+					dUser.Username, dUser.Discriminator,
+				))
+			}
+		} else {
+			log.Printf("Couldn't create a Discord user from user %d\n", user.ID)
+		}
+	}
 }
 
+func createMessage(
+	user *gosubscribe.User,
+	mapsets map[string][]*OsuSearchMapset,
+	platform string,
+) string {
+	msg := fmt.Sprintf("Notifications for %s:\n", today)
+
+	for _, mapset := range mapsets["new"] {
+		fmt.Println("!!!!")
+		var mapString string
+		switch platform {
+		case "osu":
+			mapString = osuString(mapset)
+		case "discord":
+			mapString = discordString(mapset)
+		default:
+			mapString = defaultString(mapset)
+		}
+		msg += fmt.Sprintf("\nNew map: %s", mapString)
+	}
+
+	for _, mapset := range mapsets["status"] {
+		var mapString string
+		switch platform {
+		case "osu":
+			mapString = osuString(mapset)
+		case "discord":
+			mapString = discordString(mapset)
+		default:
+			mapString = defaultString(mapset)
+		}
+		msg += fmt.Sprintf(
+			"\nStatus updated to %s: %s", statusMap[mapset.Status], mapString,
+		)
+	}
+
+	if !user.NotifyAll {
+		return msg
+	}
+
+	for _, mapset := range mapsets["update"] {
+		var mapString string
+		switch platform {
+		case "osu":
+			mapString = osuString(mapset)
+		case "discord":
+			mapString = discordString(mapset)
+		default:
+			mapString = defaultString(mapset)
+		}
+		msg += fmt.Sprintf("\nMap updated by mapper: %s", mapString)
+	}
+	return msg
+}
+
+// getSubs gets all users who are subscribed to a mapper.
 func getSubs(mapper *gosubscribe.Mapper) []*gosubscribe.User {
 	users := []*gosubscribe.User{}
 	subs := []gosubscribe.Subscription{}
@@ -115,6 +232,7 @@ func getSubs(mapper *gosubscribe.Mapper) []*gosubscribe.User {
 	return users
 }
 
+// processMapset updates a mapset in the DB.
 func processMapset(mapset *OsuSearchMapset, key string) {
 	mapper, err := gosubscribe.MapperFromDB(mapset.Mapper)
 	if err != nil {
@@ -123,7 +241,8 @@ func processMapset(mapset *OsuSearchMapset, key string) {
 
 	subs := getSubs(mapper)
 	for _, sub := range subs {
-		notifications[key][sub] = append(notifications[key][sub], mapset)
+		log.Println("Adding to notifications")
+		notifications[key][sub.ID] = append(notifications[key][sub.ID], mapset)
 	}
 
 	updated := gosubscribe.Mapset{
@@ -182,6 +301,7 @@ func getMapsets(offset int) ([]*OsuSearchMapset, error) {
 	return result.Mapsets, nil
 }
 
+// logMsg logs a message to a Discord channel.
 func logMsg(msg string) {
 	log.Println(msg)
 	bot.ChannelMessageSend(logChannel, msg)
@@ -201,4 +321,9 @@ func osuString(mapset *OsuSearchMapset) string {
 		"[https://osu.ppy.sh/s/%d %s - %s] by [https://osu.ppy.sh/u/%s %s]",
 		mapset.ID, mapset.Artist, mapset.Title, mapset.Mapper, mapset.Mapper,
 	)
+}
+
+// defaultString converts a mapset into a string with no styling.
+func defaultString(mapset *OsuSearchMapset) string {
+	return fmt.Sprintf("%s - %s by %s", mapset.Artist, mapset.Title, mapset.Mapper)
 }
