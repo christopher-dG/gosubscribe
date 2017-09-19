@@ -28,42 +28,39 @@ func main() {
 	}
 
 	bot.AddCallback("PRIVMSG", handleMessage)
-	bot.AddCallback("PING", pong)
+	bot.AddCallback("PING", handlePing)
 	bot.Loop()
 }
 
 func handleMessage(e *irc.Event) {
-	log.Printf("received private message: %s", e.Message())
 	go handlePrivate(e)
 }
 
-func pong(e *irc.Event) {
-	log.Println("received a ping")
+func handlePing(e *irc.Event) {
 	bot.SendRawf("PONG %s", e.Message())
 }
 
 // getUser retrieves a user from the database.
-func getUser(name string) (gosubscribe.User, error) {
-	var user gosubscribe.User
-	gosubscribe.DB.Where("osu_username = ?", name).First(&user)
+func getUser(name string) (*gosubscribe.User, error) {
+	user := new(gosubscribe.User)
+	gosubscribe.DB.Where("osu_username = ?", name).First(user)
 	if user.ID == 0 {
-		return user, errors.New("You aren't initialized.")
-	} else {
-		return user, nil
+		return user, errors.New("not initialized")
 	}
+	return user, nil
 }
 
 // createUser adds a new user to the database if they don't already exist, and registers
 // their osu! username  to their account.
-func createUser(name string) (gosubscribe.User, error) {
+func createUser(name string) (*gosubscribe.User, error) {
 	existing, err := getUser(name)
 	if err == nil {
-		return existing, errors.New("Already initialized.")
+		return existing, errors.New("already initialized")
 	}
-	var user gosubscribe.User
+	user := new(gosubscribe.User)
 	user.OsuUsername.String = name
 	user.OsuUsername.Valid = true
 	user.Secret = gosubscribe.GenSecret()
-	gosubscribe.DB.Save(&user)
+	gosubscribe.DB.Save(user)
 	return user, nil
 }

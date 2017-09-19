@@ -49,11 +49,11 @@ func initUser(m *discordgo.MessageCreate) string {
 func getSecret(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
-	secret, err := gosubscribe.GetSecret(user)
+	secret, err := user.GetSecret()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
 	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
 	return fmt.Sprintf("Your secret is: `%s`.", secret)
@@ -61,13 +61,13 @@ func getSecret(m *discordgo.MessageCreate) string {
 
 // registerUser registers a user's Discord ID with their existing account.
 func registerUser(m *discordgo.MessageCreate) string {
-	tokens := strings.Split(m.Content, " ")
+	tokens := strings.SplitN(m.Content, " ", 2)
 	if len(tokens) == 1 {
 		return "You need to supply your secret."
 	}
 	user, err := gosubscribe.UserFromSecret(tokens[1])
 	if err != nil {
-		return err.Error()
+		return "Incorrect secret."
 	}
 
 	if user.DiscordID.Valid && fmt.Sprint(user.DiscordID.Int64) == m.Author.ID {
@@ -76,7 +76,7 @@ func registerUser(m *discordgo.MessageCreate) string {
 	id, _ := strconv.ParseInt(m.Author.ID, 10, 64)
 	user.DiscordID.Int64 = id
 	user.DiscordID.Valid = true
-	gosubscribe.DB.Save(&user)
+	gosubscribe.DB.Save(user)
 	log.Printf(
 		".register: registered user (Discord): %d -> %d\n",
 		user.ID, user.DiscordID.Int64,

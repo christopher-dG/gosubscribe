@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	testChannel string = os.Getenv("DISCORD_TEST_CHANNEL")
-	test        bool   = os.Getenv("DB_NAME") == "test"
-	me          string = os.Getenv("DISCORD_ME")
+	testChannel = os.Getenv("DISCORD_TEST_CHANNEL")
+	test        = os.Getenv("DB_NAME") == "test"
+	me          = os.Getenv("DISCORD_ME")
 )
 
 func main() {
@@ -70,30 +70,27 @@ func isPrivate(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 }
 
 // getUser retrieves a user from the database.
-func getUser(dUser *discordgo.User) (gosubscribe.User, error) {
-	var (
-		err  error
-		user gosubscribe.User
-	)
-	gosubscribe.DB.Where("discord_id = ?", dUser.ID).Find(&user)
+func getUser(dUser *discordgo.User) (*gosubscribe.User, error) {
+	user := new(gosubscribe.User)
+	gosubscribe.DB.Where("discord_id = ?", dUser.ID).Find(user)
 	if user.ID == 0 {
-		return user, errors.New(dUser.Mention() + ", you aren't initialized.")
+		return user, errors.New("not initialized")
 	}
-	return user, err
+	return user, nil
 }
 
 // createUser adds a new user to the database if they don't already exist, and registers
 // their Discord ID to their account.
-func createUser(dUser *discordgo.User) (gosubscribe.User, error) {
-	existing, err := getUser(dUser)
+func createUser(dUser *discordgo.User) (*gosubscribe.User, error) {
+	_, err := getUser(dUser)
 	if err == nil {
-		return existing, errors.New("Already initialized.")
+		return nil, errors.New("already initialized")
 	}
-	var user gosubscribe.User
+	user := new(gosubscribe.User)
 	id, _ := strconv.ParseInt(dUser.ID, 10, 64)
 	user.DiscordID.Int64 = id
 	user.DiscordID.Valid = true
 	user.Secret = gosubscribe.GenSecret()
-	gosubscribe.DB.Save(&user)
+	gosubscribe.DB.Save(user)
 	return user, nil
 }

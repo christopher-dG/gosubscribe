@@ -1,28 +1,51 @@
 package gosubscribe
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres" // Only needed for the driver.
+)
+
+// DB (the database instance) cannot be used before Connect is called.
+var DB *gorm.DB
+
+// Connect connects to a given PostreSQL database.
+func Connect(host, user, dbname, password string) {
+	db, err := gorm.Open(
+		"postgres",
+		fmt.Sprintf(
+			"host=%s user=%s dbname=%s sslmode=disable password=%s",
+			host, user, dbname, password,
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.AutoMigrate(&User{}, &Mapper{}, &Map{}, &Subscription{})
+	DB = db // From now on, we can access the database from anywhere via DB.
+}
 
 // Subscribe subscribes a user to a list of mappers.
-func (user *User) Subscribe(mappers []Mapper) {
+func (user *User) Subscribe(mappers []*Mapper) {
 	for _, mapper := range mappers {
 		DB.Table("subscriptions").Create(&Subscription{user.ID, mapper.ID})
 	}
 }
 
 // Unsubscribe unsubscribes a user from a list of mappers.
-func (user *User) Unsubscribe(mappers []Mapper) {
+func (user *User) Unsubscribe(mappers []*Mapper) {
 	for _, mapper := range mappers {
 		DB.Delete(&Subscription{user.ID, mapper.ID})
 	}
 }
 
 // ListSubscribed gets all mappers that a user is subscribed to.
-func (user *User) ListSubscribed() []Mapper {
-	var mappers []Mapper
-	DB.Table("subscriptions").Joins(
-		"inner join mappers on subscriptions.mapper_id = mappers.id",
-	).Select("mappers.id, mappers.username").Where("subscriptions.user_id = ?", user.ID).
-		Find(&mappers)
+func (user *User) ListSubscribed() []*Mapper {
+	var mappers []*Mapper
+	DB.Table("subscriptions s").Joins("inner join mappers m on s.mapper_id = m.id").
+		Select("m.id, m.username").Where("s.user_id = ?", user.ID).Find(&mappers)
 	return mappers
 }
 
@@ -39,8 +62,8 @@ func (mapper *Mapper) Count() uint {
 }
 
 // GetCounts gets the subscriber counts for a list of mappers.
-func GetCounts(mappers []Mapper) map[Mapper]uint {
-	counts := make(map[Mapper]uint)
+func GetCounts(mappers []*Mapper) map[*Mapper]uint {
+	counts := make(map[*Mapper]uint)
 	for _, mapper := range mappers {
 		counts[mapper] = mapper.Count()
 	}
@@ -48,14 +71,14 @@ func GetCounts(mappers []Mapper) map[Mapper]uint {
 }
 
 // TopCounts gets the n mappers with the most subscribers and their subscription counts.
-func TopCounts(n int) map[Mapper]uint {
-	counts := make(map[Mapper]uint)
+func TopCounts(n int) map[*Mapper]uint {
+	counts := make(map[*Mapper]uint)
 	var subs []Subscription
 	// TODO: Figure out how to properly build this query.
-	DB.Raw(fmt.Sprintf("SELECT mapper_id, COUNT(*) FROM subscriptions GROUP BY mapper_id ORDER BY COUNT DESC LIMIT %d", n)).Find(&subs)
+	DB.Raw(fmt.Sprintf("SELECT mapper_id, COUNT(*) FROM subscriptions GROUP BY mapper_id ORDER BY COUNT DESC LIMIT %d", n)).Find(subs)
 	for _, sub := range subs {
-		var mapper Mapper
-		DB.Where("id = ?", sub.MapperID).First(&mapper)
+		mapper := new(Mapper)
+		DB.Where("id = ?", sub.MapperID).First(mapper)
 		counts[mapper] = mapper.Count()
 	}
 	return counts

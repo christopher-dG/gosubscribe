@@ -39,7 +39,7 @@ commands won't work in public channels.
 | :-: | :-: | :-: | :-: |
 | `.init` | | Initialize as a new user. You should not use this command more than once, even if you're on a different platform than the one you first initialized on. | `.init` |
 | `.secret` | | Get your unique secret, required for registering on other platforms. | `.secret` |
-| `.register` | `secret` | Register on a new platform, provided that you've initialized  elsewhere. | `.register 1234567890` |
+| `.register` | `secret` | Register on a new platform, provided that you've initialized  elsewhere. | `.register xyz secret` |
 
 ***
 

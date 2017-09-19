@@ -51,50 +51,46 @@ func handlePublic(s *discordgo.Session, m *discordgo.MessageCreate) {
 func subscribe(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Subscribe(user, m.Content, m.Author.Mention())
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
+	return gosubscribe.Subscribe(user, m.Content, m.Author.Mention())
 }
 
 // unsubscribe unsubscribes the user from the given mappers.
 func unsubscribe(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Unsubscribe(user, m.Content, m.Author.Mention())
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
+	return gosubscribe.Unsubscribe(user, m.Content, m.Author.Mention())
 }
 
 // list displays the mappers that the user is subscribed to.
 func list(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.List(user, m.Author.Mention())
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
+	return gosubscribe.List(user, m.Author.Mention())
 }
 
 // purge unsubscribes the user from all mappers.
 func purge(m *discordgo.MessageCreate) string {
 	user, err := getUser(m.Author)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Purge(user, m.Author.Mention())
+		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
+	return gosubscribe.Purge(user, m.Author.Mention())
 }
 
 // count displays the subscriber counts for the given mappers.
 func count(m *discordgo.MessageCreate) string {
 	res := gosubscribe.Count(m.Content, m.Author.Mention())
+	// Only fence the result if it's actually a table.
 	if strings.HasPrefix(res, m.Author.Mention()) {
 		return res
-	} else {
-		return fmt.Sprintf("```%s```", res)
 	}
+	return fmt.Sprintf("```%s```", res)
 }
 
 // top displays the subscriber counts  for the mappers with the most subscribers.

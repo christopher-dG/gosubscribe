@@ -9,6 +9,8 @@ import (
 	irc "github.com/thoj/go-ircevent"
 )
 
+var notInitialized = "You're not initialized."
+
 func handlePrivate(e *irc.Event) {
 	var msg string
 	switch strings.SplitN(e.Message(), " ", 2)[0] {
@@ -31,13 +33,13 @@ func handlePrivate(e *irc.Event) {
 	case ".register":
 		msg = registerUser(e)
 	case ".server":
-		msg = gosubscribe.ServerURL
+		msg = fmt.Sprintf("[%s %s]", gosubscribe.ServerURL, gosubscribe.ServerURL)
 	case ".invite":
-		msg = gosubscribe.InviteURL
+		msg = fmt.Sprintf("[%s %s]", gosubscribe.InviteURL, gosubscribe.InviteURL)
 	case ".osu":
-		msg = gosubscribe.OsuUserURL
+		msg = fmt.Sprintf("[%s %s]", gosubscribe.OsuUserURL, gosubscribe.OsuUserURL)
 	case ".help":
-		msg = gosubscribe.HelpURL
+		msg = fmt.Sprintf("[%s %s]", gosubscribe.HelpURL, gosubscribe.HelpURL)
 	default:
 		return
 	}
@@ -48,40 +50,36 @@ func handlePrivate(e *irc.Event) {
 func subscribe(e *irc.Event) string {
 	user, err := getUser(e.Nick)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Subscribe(user, e.Message(), "")
+		return notInitialized
 	}
+	return gosubscribe.Subscribe(user, e.Message(), "")
 }
 
 // unsubscribe unsubscribes the user from the given mappers.
 func unsubscribe(e *irc.Event) string {
 	user, err := getUser(e.Nick)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Unsubscribe(user, e.Message(), "")
+		return notInitialized
 	}
+	return gosubscribe.Unsubscribe(user, e.Message(), "")
 }
 
 // list displays the mappers that the user is subscribed to.
 func list(e *irc.Event) string {
 	user, err := getUser(e.Nick)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.List(user, "")
+		return notInitialized
 	}
+	return gosubscribe.List(user, "")
 }
 
 // purge unsubscribes the user from all mappers.
 func purge(e *irc.Event) string {
 	user, err := getUser(e.Nick)
 	if err != nil {
-		return err.Error()
-	} else {
-		return gosubscribe.Purge(user, "")
+		return notInitialized
 	}
+	return gosubscribe.Purge(user, "")
 }
 
 // count displays the subscriber counts for the given mappers.
@@ -114,14 +112,14 @@ func initUser(e *irc.Event) string {
 func getSecret(e *irc.Event) string {
 	user, err := getUser(e.Nick)
 	if err != nil {
-		return err.Error()
+		return notInitialized
 	}
-	secret, err := gosubscribe.GetSecret(user)
+	secret, err := user.GetSecret()
 	if err != nil {
-		return err.Error()
+		return "You don't have a secret... this shouldn't happen. Complain to Chris."
 	}
 	log.Printf(".secret: retrieved secret for %d (length %d)", user.ID, len(user.Secret))
-	return fmt.Sprintf("Your secret is: `%s`.", secret)
+	return fmt.Sprintf("Your secret is: %s.", secret)
 }
 
 // registerUser registers a user's osu! username with their existing account.
@@ -132,7 +130,7 @@ func registerUser(e *irc.Event) string {
 	}
 	user, err := gosubscribe.UserFromSecret(tokens[1])
 	if err != nil {
-		return err.Error()
+		return notInitialized
 	}
 
 	if user.OsuUsername.Valid && fmt.Sprint(user.OsuUsername.String) == e.Nick {
@@ -141,7 +139,7 @@ func registerUser(e *irc.Event) string {
 	// This also takes care of name changes.
 	user.OsuUsername.String = e.Nick
 	user.OsuUsername.Valid = true
-	gosubscribe.DB.Save(&user)
+	gosubscribe.DB.Save(user)
 	log.Printf(
 		".register: registered user (osu!): %d -> %s\n",
 		user.ID, user.OsuUsername.String,
