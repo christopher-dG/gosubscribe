@@ -1,6 +1,7 @@
 package gosubscribe
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -27,6 +28,15 @@ func Connect(host, user, dbname, password string) {
 	DB = db // From now on, we can access the database from anywhere via DB.
 }
 
+func GetUser(id uint) (*User, error) {
+	user := new(User)
+	DB.Where("ID = ?", id).First(user)
+	if user.ID == 0 {
+		return nil, errors.New("no user found")
+	}
+	return user, nil
+}
+
 // Subscribe subscribes a user to a list of mappers.
 func (user *User) Subscribe(mappers []*Mapper) {
 	for _, mapper := range mappers {
@@ -44,7 +54,7 @@ func (user *User) Unsubscribe(mappers []*Mapper) {
 // ListSubscribed gets all mappers that a user is subscribed to.
 func (user *User) ListSubscribed() []*Mapper {
 	var mappers []*Mapper
-	DB.Table("subscriptions s").Joins("inner join mappers m on s.mapper_id = m.id").
+	DB.Table("subscriptions s").Joins("INNER JOIN mappers m ON s.mapper_id = m.id").
 		Select("m.id, m.username").Where("s.user_id = ?", user.ID).Find(&mappers)
 	return mappers
 }
