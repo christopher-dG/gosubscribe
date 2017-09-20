@@ -1,6 +1,8 @@
 package gosubscribe
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 // TODO: Proper foreign keys.
 
@@ -22,9 +24,10 @@ type Mapper struct {
 
 // Mapset is an osu! beatmapset.
 type Mapset struct {
-	ID       uint `json:"beatmapset_id,string"`
-	MapperID uint `json:"-"` // Need to fill this field manually.
-	Status   int  `json:"approved,string"`
+	ID       uint   `json:"beatmapset_id,string"`
+	MapperID uint   `json:"-"` // Need to fill this field manually.
+	Status   int    `json:"approved,string"`
+	Updated  string `json:"last_update"`
 }
 
 // Subscription is a relationship between a User and Mapper.
