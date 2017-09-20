@@ -37,6 +37,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = discord.UpdateStatus(0, "osu! as Slow Twitch")
+	if err != nil {
+		log.Println(err)
+	}
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)

@@ -32,10 +32,12 @@ func main() {
 	bot.Loop()
 }
 
+// handleMessage routes a message to another appropriate handler function.
 func handleMessage(e *irc.Event) {
 	go handlePrivate(e)
 }
 
+// handlePing responsds to pings from the IRC server.
 func handlePing(e *irc.Event) {
 	bot.SendRawf("PONG %s", e.Message())
 }
