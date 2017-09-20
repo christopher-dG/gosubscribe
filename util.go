@@ -69,7 +69,7 @@ func HasMapset(mapsets []*Mapset, key *Mapset) bool {
 // sorted order.
 func GetTokens(input string) []string {
 	uniq := []string{}
-	for _, s := range strings.Split(input, ", ") {
+	for _, s := range strings.Split(input, ",") {
 		s = strings.TrimSpace(s)
 		contains := false
 		for _, t := range uniq {
