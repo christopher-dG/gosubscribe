@@ -32,6 +32,7 @@ var (
 	searchURL     = "http://osusearch.com/api/search"
 	notifications = make(map[string]map[uint][]*OsuSearchMapset)
 	today         = time.Now().Format("2006-01-02")
+	todayInt, _   = strconv.ParseUint(strings.Replace(today, "-", "", -1), 10, 64)
 	discord, err  = discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	osu           = irc.IRC(os.Getenv("IRC_USER"), os.Getenv("IRC_USER"))
 	wg            = new(sync.WaitGroup)
@@ -260,7 +261,16 @@ func notify() {
 				)
 			}
 		} else {
-			log.Printf("Couldn't create a Discord user from user %d\n", user.ID)
+			lines := strings.Split(strings.TrimSpace(msg), "\n")
+			for _, line := range lines {
+				notif := gosubscribe.Notification{
+					UserID: user.ID, Msg: line, Date: uint(todayInt),
+				}
+				gosubscribe.DB.Save(&notif)
+			}
+			log.Printf(
+				"Couldn't deliver to %d; saving %d notifications\n", user.ID, len(lines),
+			)
 		}
 	}
 }

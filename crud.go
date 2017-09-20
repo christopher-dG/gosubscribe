@@ -24,7 +24,7 @@ func Connect(host, user, dbname, password string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.AutoMigrate(&User{}, &Mapper{}, &Mapset{}, &Subscription{})
+	db.AutoMigrate(&User{}, &Mapper{}, &Mapset{}, &Subscription{}, &Notification{})
 	DB = db // From now on, we can access the database from anywhere via DB.
 }
 
