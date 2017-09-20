@@ -4,4 +4,4 @@ WORKDIR $GOPATH/src/app/
 COPY . .
 RUN go get ... && go install
 
-CMD $GOPATH/src/app/entrypoint.sh
+ENTRYPOINT ["/go/src/app/entrypoint.sh"]
