@@ -281,7 +281,7 @@ func createMessage(
 		default:
 			mapString = defaultString(mapset)
 		}
-		msg += fmt.Sprintf("\nNew map: %s", mapString)
+		msg += fmt.Sprintf("New map: %s\n", mapString)
 	}
 
 	for _, mapset := range mapsets["status"] {
@@ -295,7 +295,7 @@ func createMessage(
 			mapString = defaultString(mapset)
 		}
 		msg += fmt.Sprintf(
-			"\nStatus updated to %s: %s", statusMap[mapset.Status], mapString,
+			"Status updated to %s: %s\n", statusMap[mapset.Status], mapString,
 		)
 	}
 
@@ -313,9 +313,9 @@ func createMessage(
 		default:
 			mapString = defaultString(mapset)
 		}
-		msg += fmt.Sprintf("\nMap updated by mapper: %s", mapString)
+		msg += fmt.Sprintf("Map updated by mapper: %s\n", mapString)
 	}
-	return msg
+	return strings.TrimSpace(msg)
 }
 
 // canSendOsu determines whether or not the user can receive a message via osu! IRC.
