@@ -9,10 +9,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/christopher-dG/gosubscribe"
+	irc "github.com/thoj/go-ircevent"
 )
 
 var (
@@ -30,7 +32,10 @@ var (
 	searchURL     = "http://osusearch.com/api/search"
 	notifications = make(map[string]map[uint][]*OsuSearchMapset)
 	today         = time.Now().Format("2006-01-02")
-	bot           *discordgo.Session
+	discord, err  = discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
+	osu           = irc.IRC(os.Getenv("IRC_USER"), os.Getenv("IRC_USER"))
+	wg            = new(sync.WaitGroup)
+	ircChannel    = make(chan string)
 )
 
 // SearchResult is the JSON structure returned by osusearch.com.
@@ -55,14 +60,20 @@ func main() {
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_PASS"),
 	)
-	discord, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
-	if err != nil {
+	if err != nil { // Discord bot failed.
 		log.Fatal(err)
+	}
+	osu.Password = os.Getenv("IRC_PASS")
+	err = osu.Connect(fmt.Sprintf("%s:%s", os.Getenv("IRC_SERVER"), os.Getenv("IRC_PORT")))
+	if err != nil {
+		log.Printf("Couldn't connect to IRC: %s\n", err)
 	} else {
-		bot = discord
+		// Register WHOIS responses.
+		osu.AddCallback("311", func(_ *irc.Event) { ircChannel <- "ONLINE" })
+		osu.AddCallback("401", func(_ *irc.Event) { ircChannel <- "OFFLINE" })
 	}
 
-	logMsg(fmt.Sprintf("Starting run for %s.", today))
+	logMsg("Starting run for %s.", today)
 
 	notifications["new"] = make(map[uint][]*OsuSearchMapset)
 	notifications["status"] = make(map[uint][]*OsuSearchMapset)
@@ -71,7 +82,8 @@ func main() {
 	processMapsets()
 	notify()
 
-	logMsg(fmt.Sprintf("Finished run for %s.", today))
+	wg.Wait()
+	logMsg("Finished run for %s.", today)
 }
 
 // processMapsets gets mapsets from osusearch.com and processes them.
@@ -79,7 +91,7 @@ func processMapsets() {
 	for i := 0; i < 2; i++ { // 1000 mapsets.
 		mapsets, err := getMapsets(i)
 		if err != nil {
-			logMsg(fmt.Sprintf("Getting data from osusearch.com failed: %s", err))
+			logMsg("Getting data from osusearch.com failed: %s", err)
 		}
 
 		mapsets = dedup(mapsets)
@@ -112,47 +124,46 @@ func notify() {
 
 		if user.MessageOsu {
 			if user.OsuUsername.Valid {
-				// TODO; continue if successful, fall back to Discord otherwise.
-				// Will have to deal with one-line messages, probably splitting them.
-				// msg := createMessage(user, userNotifications, "osu")
-				// lines := strings.split(strings.TrimSpace(msg), "\n")
-				// if len(lines) == 1 { // No notifications for this user.
-				// 	continue
-				// }
+				if !canSendOsu(user) {
+					log.Printf("%d has no osu! username or is offline\n", user.ID)
+				} else {
+					wg.Add(1)
+					go sendOsu(user, createMessage(user, userNotifications, "osu"))
+					logMsg("Sent message to `%s` (osu!).", user.OsuUsername.String)
+					continue // Skip sending via Discord.
+				}
 			}
-			log.Printf("User %d has MessageOsu set but not OsuUsername", user.ID)
 		}
 
 		msg := createMessage(user, userNotifications, "discord")
-		fmt.Println(msg)
-		if len(strings.Split(strings.TrimSpace(msg), "\n")) == 1 {
-			continue // No notifications for this user.
+		if len(msg) == 0 { // No notifications for this user.
+			continue
 		}
 
 		if user.DiscordID.Valid {
-			dUser, err := bot.User(strconv.Itoa(int(user.DiscordID.Int64)))
+			dUser, err := discord.User(strconv.Itoa(int(user.DiscordID.Int64)))
 			if err != nil {
 				log.Println(err)
 				continue
 			}
 
-			channel, err := bot.UserChannelCreate(dUser.ID)
+			channel, err := discord.UserChannelCreate(dUser.ID)
 			if err != nil {
-				logMsg(fmt.Sprintf(
+				logMsg(
 					"Sending to %s failed: Couldn't open a private message channel.",
 					dUser.Mention(),
-				))
+				)
 				continue
 			}
 
-			_, err = bot.ChannelMessageSend(channel.ID, msg)
+			_, err = discord.ChannelMessageSend(channel.ID, msg)
 			if err != nil {
-				logMsg(fmt.Sprintf("Sending to %s failed: '%s'", dUser.Mention(), err))
+				logMsg("Sending to %s failed: '%s'", dUser.Mention(), err)
 			} else {
-				logMsg(fmt.Sprintf(
+				logMsg(
 					"Sent message to `%s#%s` (Discord).",
 					dUser.Username, dUser.Discriminator,
-				))
+				)
 			}
 		} else {
 			log.Printf("Couldn't create a Discord user from user %d\n", user.ID)
@@ -165,10 +176,8 @@ func createMessage(
 	mapsets map[string][]*OsuSearchMapset,
 	platform string,
 ) string {
-	msg := fmt.Sprintf("Notifications for %s:\n", today)
-
+	msg := ""
 	for _, mapset := range mapsets["new"] {
-		fmt.Println("!!!!")
 		var mapString string
 		switch platform {
 		case "osu":
@@ -196,7 +205,10 @@ func createMessage(
 		)
 	}
 
-	if !user.NotifyAll {
+	// if !user.NotifyAll {
+	if true {
+		// TODO: Mapsets need to store their last modified time (from osu! API) because
+		// we're bound to get some crossover in maps from consecutive days.
 		return msg
 	}
 
@@ -249,13 +261,13 @@ func processMapset(mapset *OsuSearchMapset, key string) {
 		ID: mapset.ID, MapperID: mapper.ID, Status: mapset.Status,
 	}
 	if key == "new" {
-		logMsg(fmt.Sprintf("New map: %s", discordString(mapset)))
+		logMsg("New map: %s", discordString(mapset))
 		gosubscribe.DB.Create(&updated)
 	} else if key == "status" {
-		logMsg(fmt.Sprintf("Ranked status updated: %s", discordString(mapset)))
+		logMsg("Ranked status updated: %s", discordString(mapset))
 		gosubscribe.DB.Save(&updated)
 	} else {
-		logMsg(fmt.Sprintf("Updated by mapper: %s", discordString(mapset)))
+		logMsg("Updated by mapper: %s", discordString(mapset))
 	}
 }
 
@@ -301,10 +313,21 @@ func getMapsets(offset int) ([]*OsuSearchMapset, error) {
 	return result.Mapsets, nil
 }
 
+// canSendOsu determines whether or not the user can receive a message via osu! IRC.
+func canSendOsu(user *gosubscribe.User) bool {
+	if !user.OsuUsername.Valid {
+		return false
+	}
+	osu.SendRawf("WHOIS %s", user.OsuUsername.String)
+	resp := <-ircChannel
+	return resp == "ONLINE"
+}
+
 // logMsg logs a message to a Discord channel.
-func logMsg(msg string) {
+func logMsg(format string, a ...interface{}) {
+	msg := fmt.Sprintf(format, a...)
 	log.Println(msg)
-	bot.ChannelMessageSend(logChannel, msg)
+	discord.ChannelMessageSend(logChannel, msg)
 }
 
 // discordString converts a mapset into a stylized string for Discord.
@@ -326,4 +349,19 @@ func osuString(mapset *OsuSearchMapset) string {
 // defaultString converts a mapset into a string with no styling.
 func defaultString(mapset *OsuSearchMapset) string {
 	return fmt.Sprintf("%s - %s by %s", mapset.Artist, mapset.Title, mapset.Mapper)
+}
+
+// sendOsu sends notifications via osu! IRC.
+func sendOsu(user *gosubscribe.User, msg string) {
+	if len(msg) == 0 { // No notifications for this user.
+		wg.Done()
+		return
+	}
+	lines := strings.Split(strings.TrimSpace(msg), "\n")
+	for _, line := range lines {
+		osu.Privmsg(user.OsuUsername.String, line)
+		// TODO: Figure out how long the interval should be to avoid silences.
+		time.Sleep(time.Duration(3 * 1000000000))
+	}
+	wg.Done()
 }
