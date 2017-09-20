@@ -62,6 +62,7 @@ func createUser(name string) (*gosubscribe.User, error) {
 	user := new(gosubscribe.User)
 	user.OsuUsername.String = name
 	user.OsuUsername.Valid = true
+	user.MessageOsu = true
 	user.Secret = gosubscribe.GenSecret()
 	gosubscribe.DB.Save(user)
 	return user, nil
