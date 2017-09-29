@@ -209,9 +209,19 @@ func notify() {
 
 	for _, user := range users {
 		userNotifications := make(map[string][]*OsuSearchMapset)
-		userNotifications["new"] = notifications["new"][user.ID]
-		userNotifications["status"] = notifications["status"][user.ID]
-		userNotifications["update"] = notifications["update"][user.ID]
+		if len(notifications["new"][user.ID]) > 0 {
+			userNotifications["new"] = notifications["new"][user.ID]
+		}
+		if len(notifications["status"][user.ID]) > 0 {
+			userNotifications["status"] = notifications["status"][user.ID]
+		}
+		if len(notifications["update"][user.ID]) > 0 {
+			userNotifications["update"] = notifications["update"][user.ID]
+		}
+
+		if len(userNotifications) == 0 {
+			continue
+		}
 
 		if user.MessageOsu {
 			if user.OsuUsername.Valid {
