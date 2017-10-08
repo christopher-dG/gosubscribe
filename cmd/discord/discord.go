@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -71,6 +72,11 @@ func isPrivate(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 		return true // TBD.
 	}
 	return channel.Type == discordgo.ChannelTypeDM
+}
+
+// escape escapes Markdown underline formatting in strings.
+func escape(s string) string {
+	return strings.Replace(s, "_", "\\_", -1)
 }
 
 // getUser retrieves a user from the database.

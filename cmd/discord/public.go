@@ -57,7 +57,7 @@ func subscribe(m *discordgo.MessageCreate) string {
 	if err != nil {
 		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
-	return gosubscribe.Subscribe(user, m.Content, m.Author.Mention())
+	return escape(gosubscribe.Subscribe(user, m.Content, m.Author.Mention()))
 }
 
 // unsubscribe unsubscribes the user from the given mappers.
@@ -66,7 +66,7 @@ func unsubscribe(m *discordgo.MessageCreate) string {
 	if err != nil {
 		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
-	return gosubscribe.Unsubscribe(user, m.Content, m.Author.Mention())
+	return escape(gosubscribe.Unsubscribe(user, m.Content, m.Author.Mention()))
 }
 
 // list displays the mappers that the user is subscribed to.
@@ -75,7 +75,7 @@ func list(m *discordgo.MessageCreate) string {
 	if err != nil {
 		return fmt.Sprintf("%s, you're not initialized.", m.Author.Mention())
 	}
-	return gosubscribe.List(user, m.Author.Mention())
+	return escape(gosubscribe.List(user, m.Author.Mention()))
 }
 
 // purge unsubscribes the user from all mappers.
