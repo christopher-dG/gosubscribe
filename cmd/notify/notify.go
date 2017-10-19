@@ -133,6 +133,7 @@ func getMapsets(offset int) ([]*OsuSearchMapset, error) {
 	var result SearchResult
 	err = json.Unmarshal(body, &result)
 	if err != nil {
+		log.Printf("Invalid JSON: %s", body)
 		return nil, err
 	}
 
