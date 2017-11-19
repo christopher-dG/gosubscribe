@@ -81,10 +81,10 @@ func main() {
 	notifications["update"] = make(map[uint][]*OsuSearchMapset)
 
 	processMapsets()
-	notify()
+	nMsgs := notify()
 
 	wg.Wait() // Wait for any IRC messages to finish sending.
-	logMsg("Finished run for %s.", today)
+	logMsg("Finished run for %s: Sent %d messages.", today, nMsgs)
 }
 
 // processMapsets gets mapsets from osusearch.com and processes them.
@@ -203,8 +203,9 @@ func dedup(list []*OsuSearchMapset) []*OsuSearchMapset {
 }
 
 // notify sends messages to users about their subscriptions.
-func notify() {
+func notify() int {
 	logMsg("Sending notifications.")
+	nMsgs := 0
 	var users []*gosubscribe.User
 	gosubscribe.DB.Find(&users)
 
@@ -229,6 +230,7 @@ func notify() {
 				if !canSendOsu(user) {
 					log.Printf("%d is not logged into osu!\n", user.ID)
 				} else {
+					nMsgs++
 					// Due to the delays caused by having to send multiple messages,
 					// do these concurrently but make sure to wait for them to finish.
 					wg.Add(1)
@@ -266,6 +268,7 @@ func notify() {
 			if err != nil {
 				logMsg("Sending to %s failed: '%s'", dUser.Mention(), err)
 			} else {
+				nMsgs++
 				logMsg(
 					"Sent message to `%s#%s` (Discord).",
 					dUser.Username, dUser.Discriminator,
@@ -284,8 +287,10 @@ func notify() {
 			)
 		}
 	}
+	return nMsgs
 }
 
+// createMessage creates a formatted notification message.
 func createMessage(
 	user *gosubscribe.User,
 	mapsets map[string][]*OsuSearchMapset,
@@ -359,7 +364,7 @@ func sendOsu(user *gosubscribe.User, msg string) {
 	for _, line := range lines {
 		osu.Privmsg(user.OsuUsername.String, line)
 		// TODO: Figure out how long the interval should be to avoid silences.
-		time.Sleep(time.Duration(1 * 1000000000))
+		time.Sleep(time.Second)
 	}
 	wg.Done()
 }
