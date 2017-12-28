@@ -274,17 +274,6 @@ func notify() int {
 					dUser.Username, dUser.Discriminator,
 				)
 			}
-		} else {
-			lines := strings.Split(strings.TrimSpace(msg), "\n")
-			for _, line := range lines {
-				notif := gosubscribe.Notification{
-					UserID: user.ID, Msg: line, Date: uint(todayInt),
-				}
-				gosubscribe.DB.Save(&notif)
-			}
-			log.Printf(
-				"Couldn't deliver to %d; saving %d notifications\n", user.ID, len(lines),
-			)
 		}
 	}
 	return nMsgs

@@ -35,10 +35,3 @@ type Subscription struct {
 	UserID   uint `gorm:"primary_key"`
 	MapperID uint `gorm:"primary_key"`
 }
-
-// Notification stores a message until it can be delivered to a user.
-type Notification struct {
-	UserID uint   `gorm:"primary_key"`
-	Msg    string `gorm:"primary_key"`
-	Date   uint   // yyyymmdd.
-}
