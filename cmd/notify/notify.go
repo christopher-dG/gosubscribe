@@ -37,6 +37,7 @@ var (
 	osu           = irc.IRC(os.Getenv("IRC_USER"), os.Getenv("IRC_USER"))
 	wg            = new(sync.WaitGroup)
 	ircChannel    = make(chan string)
+	discordMax    = 2000
 )
 
 // SearchResult is the JSON structure returned by osusearch.com.
@@ -254,18 +255,7 @@ func notify() int {
 				log.Println(err)
 				continue
 			}
-
-			channel, err := discord.UserChannelCreate(dUser.ID)
-			if err != nil {
-				logMsg(
-					"Sending to %s failed: Couldn't open a private message channel.",
-					dUser.Mention(),
-				)
-				continue
-			}
-
-			_, err = discord.ChannelMessageSend(channel.ID, msg)
-			if err != nil {
+			if err = sendDiscord(dUser, msg); err != nil {
 				logMsg("Sending to %s failed: '%s'", dUser.Mention(), err)
 			} else {
 				nMsgs++
@@ -276,6 +266,7 @@ func notify() int {
 			}
 		}
 	}
+
 	return nMsgs
 }
 
@@ -356,6 +347,39 @@ func sendOsu(user *gosubscribe.User, msg string) {
 		time.Sleep(time.Second)
 	}
 	wg.Done()
+}
+
+func sendDiscord(dUser *discordgo.User, msg string) error {
+	channel, err := discord.UserChannelCreate(dUser.ID)
+	if err != nil {
+		logMsg(
+			"Sending to %s failed: Couldn't open a private message channel.",
+			dUser.Mention(),
+		)
+		return err
+	}
+
+	// Discord has a max message length.
+	splitMsgs := []string{}
+	// We should properly split by line, but this happens rarely
+	// enough that this is fine for now.
+	for {
+		if len(msg) > discordMax {
+			splitMsgs = append(splitMsgs, msg[:discordMax])
+			msg = msg[discordMax:]
+		} else {
+			splitMsgs = append(splitMsgs, msg)
+			break
+		}
+	}
+
+	for _, m := range splitMsgs {
+		if _, err = discord.ChannelMessageSend(channel.ID, m); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // discordString converts a mapset into a stylized string for Discord.
