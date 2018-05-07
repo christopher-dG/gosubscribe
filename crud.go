@@ -13,14 +13,9 @@ import (
 var DB *gorm.DB
 
 // Connect connects to a given PostreSQL database.
+// PGxxx environment variables must be set.
 func Connect(host, user, dbname, password string) {
-	db, err := gorm.Open(
-		"postgres",
-		fmt.Sprintf(
-			"host=%s user=%s dbname=%s sslmode=disable password=%s",
-			host, user, dbname, password,
-		),
-	)
+	db, err := gorm.Open("postgres", "postgresql://")
 	if err != nil {
 		log.Fatal(err)
 	}
