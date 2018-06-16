@@ -279,29 +279,52 @@ func createMessage(
 	msg := ""
 	for _, mapset := range mapsets["new"] {
 		var mapString string
+		var icon string
 		switch platform {
 		case "osu":
 			mapString = osuString(mapset)
+			icon = "*"
 		case "discord":
 			mapString = discordString(mapset)
+			icon = ":low_brightness:"
 		default:
 			mapString = defaultString(mapset)
+			icon = "*"
 		}
-		msg += fmt.Sprintf("New map: %s\n", mapString)
+		msg += fmt.Sprintf("%s New map: %s\n", icon, mapString)
 	}
 
 	for _, mapset := range mapsets["status"] {
 		var mapString string
+		var icon string
 		switch platform {
 		case "osu":
 			mapString = osuString(mapset)
+			icon = "^"
 		case "discord":
 			mapString = discordString(mapset)
+			switch mapset.Status {
+			case -2:
+				fallthrough
+			case -1:
+				fallthrough
+			case 0:
+				icon = ":white_circle:"
+			case 1:
+				fallthrough
+			case 2:
+				icon = ":green_heart:"
+			case 3:
+				icon = ":yellow_heart:"
+			case 4:
+				icon = ":heartpulse:"
+			}
 		default:
 			mapString = defaultString(mapset)
+			icon = "^"
 		}
 		msg += fmt.Sprintf(
-			"Status updated to %s: %s\n", statusMap[mapset.Status], mapString,
+			"%s Status updated to %s: %s\n", icon, statusMap[mapset.Status], mapString,
 		)
 	}
 
@@ -311,15 +334,19 @@ func createMessage(
 
 	for _, mapset := range mapsets["update"] {
 		var mapString string
+		var icon string
 		switch platform {
 		case "osu":
 			mapString = osuString(mapset)
+			icon = "+"
 		case "discord":
 			mapString = discordString(mapset)
+			icon = ":arrow_double_up:"
 		default:
 			mapString = defaultString(mapset)
+			icon = "+"
 		}
-		msg += fmt.Sprintf("Map updated by mapper: %s\n", mapString)
+		msg += fmt.Sprintf("%s Map updated by mapper: %s\n", icon, mapString)
 	}
 	return strings.TrimSpace(msg)
 }
