@@ -291,7 +291,7 @@ func createMessage(
 			mapString = defaultString(mapset)
 			icon = "*"
 		}
-		msg += fmt.Sprintf("%s New map: %s\n", icon, mapString)
+		msg += fmt.Sprintf("%s New: %s\n", icon, mapString)
 	}
 
 	for _, mapset := range mapsets["status"] {
@@ -324,7 +324,7 @@ func createMessage(
 			icon = "^"
 		}
 		msg += fmt.Sprintf(
-			"%s Status updated to %s: %s\n", icon, statusMap[mapset.Status], mapString,
+			"%s %s: %s\n", icon, statusMap[mapset.Status], mapString,
 		)
 	}
 
@@ -346,7 +346,7 @@ func createMessage(
 			mapString = defaultString(mapset)
 			icon = "+"
 		}
-		msg += fmt.Sprintf("%s Map updated by mapper: %s\n", icon, mapString)
+		msg += fmt.Sprintf("%s Updated: %s\n", icon, mapString)
 	}
 	return strings.TrimSpace(msg)
 }
