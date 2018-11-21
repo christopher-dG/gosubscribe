@@ -1,3 +1,5 @@
-/config.yml
-/log
-/backup
+/config.sh
+*.log
+
+discord
+
